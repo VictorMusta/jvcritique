@@ -1,5 +1,5 @@
 {
-  "id": "375c359f-68af-4171-8f09-520673c25d68",
+  "id": "5939ffdd-6724-44ff-aa67-5cffc239e723",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -121,44 +121,199 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.jvcritique_post": {
-      "name": "jvcritique_post",
+    "public.jvcritique_game": {
+      "name": "jvcritique_game",
       "schema": "",
       "columns": {
         "id": {
           "name": "id",
-          "type": "integer",
+          "type": "uuid",
           "primaryKey": true,
           "notNull": true,
-          "identity": {
-            "type": "byDefault",
-            "name": "jvcritique_post_id_seq",
-            "schema": "public",
-            "increment": "1",
-            "startWith": "1",
-            "minValue": "1",
-            "maxValue": "2147483647",
-            "cache": "1",
-            "cycle": false
-          }
+          "default": "gen_random_uuid()"
         },
-        "name": {
-          "name": "name",
-          "type": "varchar(256)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "createdById": {
-          "name": "createdById",
+        "title": {
+          "name": "title",
           "type": "varchar(255)",
           "primaryKey": false,
           "notNull": true
+        },
+        "steamUrl": {
+          "name": "steamUrl",
+          "type": "varchar(2048)",
+          "primaryKey": false,
+          "notNull": false
         },
         "createdAt": {
           "name": "createdAt",
           "type": "timestamp with time zone",
           "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "game_title_lower_idx": {
+          "name": "game_title_lower_idx",
+          "columns": [
+            {
+              "expression": "lower(\"title\")",
+              "asc": true,
+              "isExpression": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.jvcritique_review_domain_score": {
+      "name": "jvcritique_review_domain_score",
+      "schema": "",
+      "columns": {
+        "reviewId": {
+          "name": "reviewId",
+          "type": "uuid",
+          "primaryKey": false,
           "notNull": true
+        },
+        "domain": {
+          "name": "domain",
+          "type": "jvcritique_domain",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "value": {
+          "name": "value",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "notApplicable": {
+          "name": "notApplicable",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "jvcritique_review_domain_score_reviewId_jvcritique_review_id_fk": {
+          "name": "jvcritique_review_domain_score_reviewId_jvcritique_review_id_fk",
+          "tableFrom": "jvcritique_review_domain_score",
+          "tableTo": "jvcritique_review",
+          "columnsFrom": [
+            "reviewId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "jvcritique_review_domain_score_reviewId_domain_pk": {
+          "name": "jvcritique_review_domain_score_reviewId_domain_pk",
+          "columns": [
+            "reviewId",
+            "domain"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "review_domain_score_exclusive": {
+          "name": "review_domain_score_exclusive",
+          "value": "(\"jvcritique_review_domain_score\".\"notApplicable\" = true and \"jvcritique_review_domain_score\".\"value\" is null)\n       or (\"jvcritique_review_domain_score\".\"notApplicable\" = false and \"jvcritique_review_domain_score\".\"value\" is not null and \"jvcritique_review_domain_score\".\"value\" between 0 and 20)"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.jvcritique_review": {
+      "name": "jvcritique_review",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "gameId": {
+          "name": "gameId",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "authorId": {
+          "name": "authorId",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "overallScoreManual": {
+          "name": "overallScoreManual",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "playtimeHours": {
+          "name": "playtimeHours",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "completed": {
+          "name": "completed",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "whyRecommend": {
+          "name": "whyRecommend",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "whatMissed": {
+          "name": "whatMissed",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "whatHated": {
+          "name": "whatHated",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "whyNotRecommend": {
+          "name": "whyNotRecommend",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
         },
         "updatedAt": {
           "name": "updatedAt",
@@ -168,11 +323,32 @@
         }
       },
       "indexes": {
-        "created_by_idx": {
-          "name": "created_by_idx",
+        "review_author_game_idx": {
+          "name": "review_author_game_idx",
           "columns": [
             {
-              "expression": "createdById",
+              "expression": "authorId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "gameId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "review_created_at_idx": {
+          "name": "review_created_at_idx",
+          "columns": [
+            {
+              "expression": "createdAt",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -183,11 +359,11 @@
           "method": "btree",
           "with": {}
         },
-        "name_idx": {
-          "name": "name_idx",
+        "review_game_id_idx": {
+          "name": "review_game_id_idx",
           "columns": [
             {
-              "expression": "name",
+              "expression": "gameId",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -200,24 +376,46 @@
         }
       },
       "foreignKeys": {
-        "jvcritique_post_createdById_jvcritique_user_id_fk": {
-          "name": "jvcritique_post_createdById_jvcritique_user_id_fk",
-          "tableFrom": "jvcritique_post",
-          "tableTo": "jvcritique_user",
+        "jvcritique_review_gameId_jvcritique_game_id_fk": {
+          "name": "jvcritique_review_gameId_jvcritique_game_id_fk",
+          "tableFrom": "jvcritique_review",
+          "tableTo": "jvcritique_game",
           "columnsFrom": [
-            "createdById"
+            "gameId"
           ],
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "jvcritique_review_authorId_jvcritique_user_id_fk": {
+          "name": "jvcritique_review_authorId_jvcritique_user_id_fk",
+          "tableFrom": "jvcritique_review",
+          "tableTo": "jvcritique_user",
+          "columnsFrom": [
+            "authorId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {},
+      "checkConstraints": {
+        "review_overall_score_range": {
+          "name": "review_overall_score_range",
+          "value": "\"jvcritique_review\".\"overallScoreManual\" is null or \"jvcritique_review\".\"overallScoreManual\" between 0 and 20"
+        },
+        "review_playtime_non_negative": {
+          "name": "review_playtime_non_negative",
+          "value": "\"jvcritique_review\".\"playtimeHours\" is null or \"jvcritique_review\".\"playtimeHours\" >= 0"
+        }
+      },
       "isRLSEnabled": false
     },
     "public.jvcritique_session": {
@@ -314,6 +512,12 @@
           "type": "varchar(255)",
           "primaryKey": false,
           "notNull": false
+        },
+        "bannedAt": {
+          "name": "bannedAt",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {},
@@ -362,9 +566,82 @@
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
+    },
+    "public.jvcritique_weighting": {
+      "name": "jvcritique_weighting",
+      "schema": "",
+      "columns": {
+        "userId": {
+          "name": "userId",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "domain": {
+          "name": "domain",
+          "type": "jvcritique_domain",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "weight": {
+          "name": "weight",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "jvcritique_weighting_userId_jvcritique_user_id_fk": {
+          "name": "jvcritique_weighting_userId_jvcritique_user_id_fk",
+          "tableFrom": "jvcritique_weighting",
+          "tableTo": "jvcritique_user",
+          "columnsFrom": [
+            "userId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "jvcritique_weighting_userId_domain_pk": {
+          "name": "jvcritique_weighting_userId_domain_pk",
+          "columns": [
+            "userId",
+            "domain"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "weighting_weight_range": {
+          "name": "weighting_weight_range",
+          "value": "\"jvcritique_weighting\".\"weight\" between 0 and 100"
+        }
+      },
+      "isRLSEnabled": false
     }
   },
-  "enums": {},
+  "enums": {
+    "public.jvcritique_domain": {
+      "name": "jvcritique_domain",
+      "schema": "public",
+      "values": [
+        "gameplay",
+        "story",
+        "atmosphere",
+        "artDirection",
+        "soundtrack",
+        "pacing",
+        "technical"
+      ]
+    }
+  },
   "schemas": {},
   "sequences": {},
   "roles": {},

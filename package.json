@@ -18,6 +18,7 @@
     "preview": "next build && next start",
     "start": "next start",
     "test": "vitest run",
+    "test:db": "vitest run --config vitest.config.db.ts",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit"
   },
