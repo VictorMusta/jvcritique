@@ -10,8 +10,32 @@ on:
 
 jobs:
   check:
-    name: Typage, lint et tests unitaires
+    name: Typage, lint, tests et build
     runs-on: ubuntu-latest
+
+    # PostgreSQL éphémère pour les tests d'intégration. Ils vérifient ce qu'aucun test
+    # unitaire ne peut atteindre : que la BASE refuse les états interdits. La première
+    # version de la contrainte `review_domain_score_exclusive` laissait passer une ligne
+    # vide — un CHECK de PostgreSQL ne rejette que sur FALSE, et l'expression valait NULL.
+    # Sans ce service, ce défaut pourrait revenir sans que rien ne le signale.
+    services:
+      postgres:
+        image: postgres:17-bookworm
+        env:
+          POSTGRES_USER: jvcritique
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: jvcritique
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
+    env:
+      DATABASE_URL: postgresql://jvcritique:ci@localhost:5432/jvcritique
+
     steps:
       - uses: actions/checkout@v5
 
@@ -29,14 +53,20 @@ jobs:
       - name: Typage
         run: npm run typecheck
 
-      # `--if-present` pendant l'amorçage du projet : le script `test` arrive avec le
-      # moteur de notation. Dès qu'il existe, cette étape devient bloquante sans
-      # modification du workflow.
       - name: Tests unitaires
-        run: npm run test --if-present
+        run: npm test
 
-      # Le build vérifie ce que ni le typage ni le lint n'attrapent : la résolution
-      # réelle des modules par le bundler. C'est exactement le défaut qui a cassé
+      # Les migrations sont commitées (D20) : on applique exactement ce que le
+      # déploiement appliquera. Une migration qui ne passe pas ici ne partira pas en
+      # production.
+      - name: Appliquer les migrations
+        run: npm run db:migrate
+
+      - name: Tests d'intégration
+        run: npm run test:db
+
+      # Le build attrape ce que ni le typage ni le lint ne voient : la résolution réelle
+      # des modules par le bundler. C'est exactement le défaut qui a cassé
       # `next-auth/adapters` — TypeScript était content, le bundler non.
       - name: Build
         env:
