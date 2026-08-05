@@ -1,6 +1,9 @@
 import { relations } from "drizzle-orm";
 import { index, pgTableCreator, primaryKey } from "drizzle-orm/pg-core";
-import { type AdapterAccount } from "next-auth/adapters";
+// `import type` et non `import { type … }` : next-auth n'expose `./adapters` qu'avec une
+// condition `types`, sans entrée d'exécution. La seconde forme laisse un spécificateur de
+// module à résoudre au bundler, qui échoue ; la première est effacée à la compilation.
+import type { AdapterAccount } from "next-auth/adapters";
 
 /**
  * This is an example of how to use the multi-project schema feature of Drizzle ORM. Use the same

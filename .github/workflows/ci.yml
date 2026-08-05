@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches-ignore: [main]
+  pull_request:
+  # Rend cette CI appelable par deploy.yml : c'est ce qui fait de la porte de qualité
+  # une vraie dépendance et non une exécution parallèle qu'on peut ignorer.
+  workflow_call:
+
+jobs:
+  check:
+    name: Typage, lint et tests unitaires
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Installer les dépendances
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typage
+        run: npm run typecheck
+
+      # `--if-present` pendant l'amorçage du projet : le script `test` arrive avec le
+      # moteur de notation. Dès qu'il existe, cette étape devient bloquante sans
+      # modification du workflow.
+      - name: Tests unitaires
+        run: npm run test --if-present
+
+      # Le build vérifie ce que ni le typage ni le lint n'attrapent : la résolution
+      # réelle des modules par le bundler. C'est exactement le défaut qui a cassé
+      # `next-auth/adapters` — TypeScript était content, le bundler non.
+      - name: Build
+        env:
+          SKIP_ENV_VALIDATION: "1"
+        run: npm run build
