@@ -1,0 +1,17 @@
+{
+  "name": "jvcritiqué",
+  "short_name": "jvcritiqué",
+  "description": "Les avis de jeux de tes potes, notés selon TES critères.",
+  "lang": "fr",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#171310",
+  "theme_color": "#171310",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "48x48",
+      "type": "image/x-icon"
+    }
+  ]
+}

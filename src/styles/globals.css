@@ -1,6 +1,146 @@
 @import "tailwindcss";
 
+/*
+ * Jetons de la spine visuelle (DESIGN.md). Variante Potion Craft, mode sombre — le défaut
+ * du produit. Les neuf autres combinaisons de couleurs (FR-20) sont reportées après la V0 ;
+ * les nommer en variables dès maintenant permettra de les brancher sans toucher un
+ * composant.
+ */
 @theme {
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif,
-    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --color-bg: #171310;
+  --color-surface: #221b16;
+  --color-surface-raised: #2c231c;
+  --color-border: #3a2e24;
+  --color-text: #efe3d0;
+  --color-text-muted: #a8937a;
+  --color-accent: #c98a3c;
+  --color-score-author: #efe3d0;
+  --color-score-reader: #86b79a;
+  --color-spoiler-mask: #2c231c;
+  --color-positive: #7fa86b;
+  --color-negative: #b4553f;
+
+  --font-display: var(--font-fraunces), Georgia, serif;
+  --font-sans: var(--font-inter), system-ui, sans-serif;
+
+  --radius-sm: 6px;
+  --radius-DEFAULT: 8px;
+  --radius-md: 10px;
+
+  /* Échelle d'espacement de la spine, en toutes petites valeurs assumées : l'écran est
+     dense parce qu'un fil se parcourt, il ne se contemple pas. */
+  --spacing-s1: 4px;
+  --spacing-s2: 6px;
+  --spacing-s3: 8px;
+  --spacing-s4: 12px;
+  --spacing-s5: 16px;
+  --spacing-s6: 22px;
+  --spacing-s7: 32px;
+}
+
+html {
+  background-color: var(--color-bg);
+  color-scheme: dark;
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/*
+ * CHASSE TABULAIRE sur tout ce qui est une note. Obligatoire d'après la spine, et pas pour
+ * l'élégance : sans elle, deux notes empilées dans un fil ne s'alignent pas verticalement,
+ * et l'œil ne peut plus les comparer d'un coup — ce qui est exactement l'usage.
+ */
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+ * Le focus reste visible partout. Le supprimer rendrait la navigation au clavier
+ * impossible à suivre, et WCAG AA est une exigence du produit.
+ */
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/*
+ * Curseur de pondération et de note de domaine.
+ *
+ * La ZONE DE CONTACT fait 48 px de haut, le rail visible seulement 8. Les deux hauteurs
+ * sont indépendantes et la première ne se déduit pas de la seconde : c'est la règle
+ * explicite de la spine, et elle existe parce qu'un rail de 8 px est intouchable au pouce.
+ */
+input[type="range"].domain-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 48px;
+  background: transparent;
+  cursor: pointer;
+}
+
+input[type="range"].domain-slider::-webkit-slider-runnable-track {
+  height: 8px;
+  border-radius: 9999px;
+  background: var(--color-surface-raised);
+}
+
+input[type="range"].domain-slider::-moz-range-track {
+  height: 8px;
+  border-radius: 9999px;
+  background: var(--color-surface-raised);
+}
+
+input[type="range"].domain-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 28px;
+  width: 28px;
+  margin-top: -10px;
+  border-radius: 9999px;
+  background: var(--color-text);
+  border: 3px solid var(--color-bg);
+}
+
+input[type="range"].domain-slider::-moz-range-thumb {
+  height: 28px;
+  width: 28px;
+  border-radius: 9999px;
+  background: var(--color-text);
+  border: 3px solid var(--color-bg);
+}
+
+/*
+ * L'état VIDE a une apparence distincte de la valeur 0 — règle de la spine.
+ *
+ * Sans cette distinction, un curseur non touché serait indiscernable d'un « je mets zéro à
+ * ce domaine », et les deux ne produisent pas du tout la même note : vide est exclu du
+ * calcul, zéro est un jugement sévère qui y entre.
+ */
+input[type="range"].domain-slider[data-empty="true"]::-webkit-slider-thumb {
+  background: var(--color-text-muted);
+}
+
+input[type="range"].domain-slider[data-empty="true"]::-moz-range-thumb {
+  background: var(--color-text-muted);
+}
+
+/*
+ * Masque de spoiler. `color: transparent` est un effet de SURFACE et non un masquage : le
+ * texte reste dans les octets. Pour la V0, les spoilers sont reportés (FR-6) — ces règles
+ * existent pour que le jour où le parseur arrive, l'apparence soit déjà juste.
+ */
+.spoiler-mask {
+  background: var(--color-spoiler-mask);
+  box-shadow: inset 0 0 0 1px var(--color-border);
+  border-radius: 3px;
+  color: transparent;
+  user-select: none;
 }
