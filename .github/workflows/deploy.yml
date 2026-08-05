@@ -25,7 +25,7 @@ jobs:
     needs: ci
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       # Empreinte de l'hôte ÉPINGLÉE via un secret, et non redécouverte par un
       # `ssh-keyscan` à chaque exécution : un keyscan accepterait en silence un hôte
