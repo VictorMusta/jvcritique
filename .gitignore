@@ -1,0 +1,61 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.js
+
+# testing
+/coverage
+
+# database
+/prisma/db.sqlite
+/prisma/db.sqlite-journal
+db.sqlite
+
+# next.js
+/.next/
+/out/
+next-env.d.ts
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# local env files
+# do not commit any .env files to git, except for the .env.example file. https://create.t3.gg/en/usage/env-variables#using-environment-variables
+.env
+.env*.local
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+
+# idea files
+.idea
+
+# outillage BMAD et Claude Code — réinstallable, propre à la machine
+_bmad/
+.claude/
+
+# Artefacts de planification (brief, PRD, UX, architecture).
+#
+# EXCLUS TEMPORAIREMENT d'un dépôt public : architecture.md décrit la topologie du
+# VPS mutualisé (ports occupés, services voisins, projets clients nommés). Publier
+# ça exposerait l'infrastructure de tiers qui n'ont rien demandé.
+#
+# À publier une fois cette section neutralisée — c'est la meilleure pièce du
+# portfolio, et le principe d'isolation vaut d'être montré ; pas le numéro de port
+# du voisin.
+_bmad-output/
