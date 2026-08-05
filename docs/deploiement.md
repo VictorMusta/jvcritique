@@ -22,6 +22,28 @@ négocient pas :
 Un test rouge **empêche** le déploiement. C'est voulu : les migrations s'appliquent avant
 le démarrage, donc déployer du code cassé engagerait un changement de schéma pour rien.
 
+## Le nom d'hôte
+
+**V0 : `jvcritique.duckdns.org`** — sous-domaine gratuit, créé en deux minutes sur
+[duckdns.org](https://www.duckdns.org) en pointant l'IPv4 du VPS. Aucune attente de
+propagation.
+
+Caddy obtient un **vrai certificat Let's Encrypt** dessus : `duckdns.org` figure sur la
+Public Suffix List, donc chaque sous-domaine compte comme un domaine enregistré distinct
+pour les quotas de délivrance. Le défi HTTP-01 ne demande que le port 80, déjà ouvert.
+
+**À savoir avant de s'y installer durablement.** Sur un suffixe partagé, un cookie portant
+l'attribut `domain=.duckdns.org` serait lisible par n'importe quel autre sous-domaine du
+service. Auth.js pose des cookies **liés à l'hôte** par défaut, donc la session est isolée
+— mais il ne faut jamais configurer de `domain` sur les cookies ici. C'est une raison de
+fond de passer à un vrai domaine, pas seulement une question d'allure.
+
+**Migration vers un vrai domaine, plus tard, sans rupture** : une application Discord
+accepte **plusieurs URL de redirection**. On ajoute la nouvelle à côté de l'ancienne, on
+ajoute un bloc Caddy, on change `AUTH_URL`, on redémarre. Aucun compte n'est perdu :
+l'identité d'un Utilisateur est son identifiant Discord, pas l'URL par laquelle il est
+arrivé.
+
 ## Préparation du serveur — une seule fois, à la main
 
 ### 1. Le dossier
@@ -47,7 +69,7 @@ DATABASE_URL=postgresql://jvcritique:<le même mot de passe>@db:5432/jvcritique
 AUTH_SECRET=<sortie de `npx auth secret`>
 AUTH_DISCORD_ID=<identifiant de l'application Discord>
 AUTH_DISCORD_SECRET=<secret de l'application Discord>
-AUTH_URL=https://<le sous-domaine>/api/auth
+AUTH_URL=https://jvcritique.duckdns.org/api/auth
 ```
 
 Restreindre les droits, puisqu'il contient des secrets :
@@ -63,8 +85,11 @@ la locale pour développer, la publique pour tes amis :
 
 ```
 http://localhost:3000/api/auth/callback/discord
-https://<le sous-domaine>/api/auth/callback/discord
+https://jvcritique.duckdns.org/api/auth/callback/discord
 ```
+
+Les deux, et pas l'une ou l'autre : la locale sert à développer, la publique à tes amis.
+Discord n'accepte une redirection que si elle figure **exactement** dans cette liste.
 
 ### 4. Le bloc Caddy
 
@@ -72,7 +97,7 @@ Le `Caddyfile` est **monolithique** et partagé avec les autres services. Il se 
 **à la main**, jamais par la pipeline. Ajouter :
 
 ```
-<le sous-domaine> {
+jvcritique.duckdns.org {
     encode zstd gzip
     reverse_proxy 127.0.0.1:8083
 }
