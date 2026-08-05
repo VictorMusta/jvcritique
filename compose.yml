@@ -1,0 +1,90 @@
+# Nom de projet EXPLICITE (D16). Sans cette ligne, Compose le déduit du nom du dossier
+# — ce qui marche par coïncidence et se casse le jour où le dossier est renommé. Toutes
+# les ressources créées ici en héritent, ce qui rend le cloisonnement vérifiable.
+name: jvcritique
+
+services:
+  # -------------------------------------------------------------------------
+  # Base de données — instance dédiée au projet
+  # -------------------------------------------------------------------------
+  db:
+    image: postgres:17-bookworm
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER manquant}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD manquant}
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB manquant}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    networks:
+      - internal
+    # AUCUN port publié, volontairement.
+    #
+    # Une instance PostgreSQL tourne déjà sur la machine (INV-4). Ne rien publier
+    # supprime la question du conflit de port au lieu de la déplacer : la base n'est
+    # joignable que par les conteneurs de ce projet, sur son propre réseau.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+  # -------------------------------------------------------------------------
+  # Migrations (D20) — s'exécute jusqu'au bout, puis sort
+  # -------------------------------------------------------------------------
+  migrate:
+    build:
+      context: .
+      target: migrate
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL manquant}
+    networks:
+      - internal
+    depends_on:
+      db:
+        condition: service_healthy
+    # Ce conteneur n'est pas un service : il fait son travail et s'arrête.
+    restart: "no"
+
+  # -------------------------------------------------------------------------
+  # Application
+  # -------------------------------------------------------------------------
+  app:
+    build:
+      context: .
+      target: runner
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL manquant}
+      AUTH_SECRET: ${AUTH_SECRET:?AUTH_SECRET manquant}
+      AUTH_DISCORD_ID: ${AUTH_DISCORD_ID:?AUTH_DISCORD_ID manquant}
+      AUTH_DISCORD_SECRET: ${AUTH_DISCORD_SECRET:?AUTH_DISCORD_SECRET manquant}
+      # URL publique de l'application. Auth.js en a besoin pour construire l'URL de
+      # redirection OAuth ; derrière un proxy inverse, il ne peut pas la deviner.
+      AUTH_URL: ${AUTH_URL:?AUTH_URL manquant}
+      # Indique à Auth.js de faire confiance aux en-têtes X-Forwarded-* posés par Caddy.
+      AUTH_TRUST_HOST: "true"
+    ports:
+      # Écoute sur la BOUCLE LOCALE uniquement.
+      #
+      # Caddy est le seul frontal : il termine TLS et relaie vers 127.0.0.1:8083. Publier
+      # sur 0.0.0.0 exposerait l'application en HTTP nu sur Internet, contournable par
+      # quiconque connaît le port — donc sans HTTPS et sans les en-têtes de sécurité.
+      - "127.0.0.1:8083:3000"
+    networks:
+      - internal
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+# Réseau et volume NOMMÉS et préfixés (D16 / INV-4). Sans nom explicite, Compose les
+# préfixe déjà du nom de projet, mais le nommage explicite rend l'inventaire lisible
+# sur une machine qui héberge plusieurs projets.
+networks:
+  internal:
+    name: jvcritique-internal
+
+volumes:
+  db-data:
+    name: jvcritique-db-data

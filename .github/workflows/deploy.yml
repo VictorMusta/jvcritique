@@ -1,0 +1,87 @@
+name: Déploiement sur le VPS
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Deux déploiements simultanés se marcheraient dessus pendant le rsync et le build.
+# `cancel-in-progress: false` : on ne coupe pas un déploiement en cours, on attend —
+# l'interrompre pendant une migration laisserait le schéma dans un état intermédiaire.
+concurrency:
+  group: deploy-jvcritique
+  cancel-in-progress: false
+
+jobs:
+  # La porte de qualité, exigence de Victor : un test rouge empêche le déploiement.
+  # C'est structurant vu D20 — les migrations s'appliquent avant le démarrage de
+  # l'application, donc déployer du code cassé engagerait un changement de schéma
+  # pour rien.
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  deploy:
+    name: Synchroniser et redémarrer
+    needs: ci
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Empreinte de l'hôte ÉPINGLÉE via un secret, et non redécouverte par un
+      # `ssh-keyscan` à chaque exécution : un keyscan accepterait en silence un hôte
+      # usurpé entre deux déploiements. C'est le modèle retenu sur turf-horses.
+      - name: Installer la clé de déploiement
+        uses: shimataro/ssh-key-action@v2
+        with:
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          known_hosts: ${{ secrets.SSH_KNOWN_HOSTS }}
+
+      # --delete purge côté serveur ce qui a disparu de la source. On exclut donc tout
+      # ce qui VIT sur le VPS et ne doit jamais être effacé — au premier rang, le .env
+      # de production, qui n'existe que là.
+      - name: Synchroniser le code
+        run: |
+          rsync -avz --delete \
+            --exclude='.git/' \
+            --exclude='node_modules/' \
+            --exclude='.next/' \
+            --exclude='.env' \
+            ./ ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/opt/jvcritique/
+
+      - name: Construire et redémarrer les conteneurs du projet
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            set -eu
+            cd /opt/jvcritique
+            docker compose --project-name jvcritique up -d --build --remove-orphans
+            # Nettoyage BORNÉ au projet (INV-4).
+            #
+            # `docker image prune -f` sans filtre — le motif utilisé sur les autres
+            # projets de cette machine — balaie les images de TOUS les projets, dont
+            # ceux des voisins. Le filtre par étiquette de projet Compose échoue en
+            # position sûre : si l'étiquette est absente, rien n'est supprimé.
+            docker image prune -f \
+              --filter label=com.docker.compose.project=jvcritique
+
+      - name: Vérifier que l'application répond
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            set -eu
+            for i in $(seq 1 30); do
+              if curl -fsS -o /dev/null http://127.0.0.1:8083/; then
+                echo "L'application répond."
+                exit 0
+              fi
+              sleep 2
+            done
+            echo "L'application ne répond pas après 60 s. Journaux :"
+            docker compose --project-name jvcritique logs --tail=50 app
+            exit 1
