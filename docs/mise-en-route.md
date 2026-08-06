@@ -8,11 +8,15 @@ Compter **30 à 45 minutes**, en une seule passe.
 
 État de départ, déjà acquis :
 
-- [x] Dépôt public créé, 5 commits, CI verte sur runner propre
+- [x] Dépôt public créé, 12 commits, **CI verte** sur runner propre
 - [x] Les 4 secrets GitHub posés et fonctionnels
 - [x] `/opt/jvcritique/` existe sur le VPS — le `rsync` de la pipeline l'a créé
 - [x] `jvcritique.duckdns.org` → `212.227.82.119`, ports 22 / 80 / 443 ouverts
-- [x] Moteur de notation écrit, 15 tests au vert
+- [x] **V0 fonctionnellement complète** : connexion Discord, rédaction, fil, fiche de jeu,
+      pondération et note relue, spoilers, modification d'un avis, confidentialité
+- [x] **122 tests** — 105 unitaires, 17 d'intégration contre un vrai PostgreSQL
+- [x] 4 migrations commitées, appliquées **automatiquement** par le service `migrate`
+      avant le démarrage de l'application (D20) : rien à lancer à la main
 
 ---
 
