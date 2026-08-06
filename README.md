@@ -69,6 +69,25 @@ AUTH_DISCORD_SECRET=<idem>
 L'application Discord de développement doit déclarer la redirection
 `http://localhost:3000/api/auth/callback/discord`.
 
+> Next.js charge `.env.local` **en priorité** sur `.env`. Si `.env` semble ignoré, c'est
+> qu'une valeur est écrasée là.
+
+#### Tester les écrans authentifiés sans Discord
+
+L'adaptateur Auth.js stocke les sessions en base. On peut donc s'en fabriquer une, ce qui
+évite de créer une application Discord juste pour regarder un formulaire :
+
+```bash
+docker exec -i jvcritique-dev-db psql -U jvcritique -d jvcritique -c "INSERT INTO jvcritique_session (\"sessionToken\",\"userId\",expires) VALUES ('dev-session','<id-utilisateur>', now() + interval '1 day');"
+```
+
+Puis poser le cookie `authjs.session-token=dev-session` dans le navigateur, ou passer
+`-H "Cookie: authjs.session-token=dev-session"` à `curl`.
+
+Cela ne fonctionne qu'en local et suppose un accès en écriture à sa propre base : ce n'est
+pas un contournement d'authentification, c'est la même chose que se connecter, sans le
+détour par Discord.
+
 ### 4. Migrations et démarrage
 
 ```bash
