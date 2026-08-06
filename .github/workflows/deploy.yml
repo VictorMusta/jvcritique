@@ -57,7 +57,25 @@ jobs:
           script: |
             set -eu
             cd /opt/jvcritique
-            docker compose --project-name jvcritique up -d --build --remove-orphans
+
+            # Les journaux des conteneurs sont récupérés EN CAS D'ÉCHEC.
+            #
+            # Sans ce bloc, Compose ne rapporte que « service migrate didn't complete
+            # successfully: exit 1 » — ce qui oblige à se connecter au serveur pour
+            # comprendre, donc à deviner en attendant. Un échec de déploiement doit porter
+            # son diagnostic.
+            if ! docker compose --project-name jvcritique up -d --build --remove-orphans; then
+              echo "======== journaux du service migrate ========"
+              docker compose --project-name jvcritique logs --no-color migrate || true
+              echo "======== journaux du service db (30 dernières lignes) ========"
+              docker compose --project-name jvcritique logs --no-color --tail=30 db || true
+              echo "======== journaux du service app (30 dernières lignes) ========"
+              docker compose --project-name jvcritique logs --no-color --tail=30 app || true
+              echo "======== état des conteneurs ========"
+              docker compose --project-name jvcritique ps --all || true
+              exit 1
+            fi
+
             # Nettoyage BORNÉ au projet (INV-4).
             #
             # `docker image prune -f` sans filtre — le motif utilisé sur les autres
