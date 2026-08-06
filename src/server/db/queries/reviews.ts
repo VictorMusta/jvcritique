@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray, or, type SQL } from "drizzle-orm";
 
 import type { DomainKey, DomainScores, Weighting } from "~/domain/types";
 import { db } from "../index";
@@ -42,9 +42,27 @@ function toDomainScores(rows: DomainScoreRow[]): DomainScores {
 
 export type UpdateNote = { id: string; body: string; createdAt: Date };
 
+/**
+ * Condition de visibilité — FR-17.
+ *
+ * Un Avis privé n'est visible que par son auteur. Appliquée DANS LA REQUÊTE et non par un
+ * filtre en JavaScript après coup : une liste filtrée en mémoire dépend de la discipline de
+ * chaque appelant, et le jour où quelqu'un ajoute une surface en oubliant le filtre, les avis
+ * privés de ses potes se retrouvent affichés. Ici, la base ne les rend simplement pas.
+ */
+function visibleTo(viewerId: string | null): SQL | undefined {
+  if (viewerId === null) {
+    return eq(reviews.isPrivate, false);
+  }
+
+  return or(eq(reviews.isPrivate, false), eq(reviews.authorId, viewerId));
+}
+
 export type ReviewForDisplay = {
   id: string;
   createdAt: Date;
+  /** Avis privé — visible de son seul auteur (FR-17). */
+  isPrivate: boolean;
   /** Date de dernière modification, visible quand l'avis a été modifié (FR-9). */
   updatedAt: Date | null;
   updateNotes: UpdateNote[];
@@ -108,6 +126,7 @@ const reviewWith = {
 type RawReview = {
   id: string;
   createdAt: Date;
+  isPrivate: boolean;
   updatedAt: Date | null;
   updateNotes: UpdateNote[];
   overallScoreManual: number | null;
@@ -129,6 +148,7 @@ function assemble(
   return {
     id: raw.id,
     createdAt: raw.createdAt,
+    isPrivate: raw.isPrivate,
     updatedAt: raw.updatedAt,
     // Chronologique CROISSANT : FR-10 veut qu'elles « se lisent à la suite », dans l'ordre
     // où l'auteur les a écrites — l'inverse du fil.
@@ -162,8 +182,12 @@ function assemble(
  * problème du fil vide. Le jour où FR-18 arrive, le filtre se pose par-dessus une requête
  * qui existe déjà.
  */
-export async function getFeed(limit = 20): Promise<ReviewForDisplay[]> {
+export async function getFeed(
+  viewerId: string | null,
+  limit = 20,
+): Promise<ReviewForDisplay[]> {
   const rows = await db.query.reviews.findMany({
+    where: visibleTo(viewerId),
     with: reviewWith,
     orderBy: [desc(reviews.createdAt)],
     limit,
@@ -196,9 +220,10 @@ export async function getReviewById(
 /** Tous les Avis d'un Jeu (FR-14). */
 export async function getReviewsByGame(
   gameId: string,
+  viewerId: string | null,
 ): Promise<ReviewForDisplay[]> {
   const rows = await db.query.reviews.findMany({
-    where: eq(reviews.gameId, gameId),
+    where: and(eq(reviews.gameId, gameId), visibleTo(viewerId)),
     with: reviewWith,
     orderBy: [desc(reviews.createdAt)],
   });
@@ -213,9 +238,10 @@ export async function getReviewsByGame(
 /** Avis d'un Utilisateur, pour son profil (FR-14). */
 export async function getReviewsByAuthor(
   authorId: string,
+  viewerId: string | null,
 ): Promise<ReviewForDisplay[]> {
   const rows = await db.query.reviews.findMany({
-    where: eq(reviews.authorId, authorId),
+    where: and(eq(reviews.authorId, authorId), visibleTo(viewerId)),
     with: reviewWith,
     orderBy: [desc(reviews.createdAt)],
   });
@@ -241,6 +267,7 @@ export type NewReviewDomainScore = {
 export async function createReview(input: {
   gameId: string;
   authorId: string;
+  isPrivate: boolean;
   overallScoreManual: number | null;
   playtimeHours: number | null;
   completed: boolean;
@@ -256,6 +283,7 @@ export async function createReview(input: {
       .values({
         gameId: input.gameId,
         authorId: input.authorId,
+        isPrivate: input.isPrivate,
         overallScoreManual: input.overallScoreManual,
         playtimeHours: input.playtimeHours,
         completed: input.completed,
@@ -298,6 +326,7 @@ export async function createReview(input: {
  */
 export type ReviewForEdit = {
   reviewId: string;
+  isPrivate: boolean;
   gameTitle: string;
   steamUrl: string | null;
   overallScoreManual: number | null;
@@ -325,6 +354,7 @@ export async function getReviewForEdit(
 
   return {
     reviewId: raw.id,
+    isPrivate: raw.isPrivate,
     gameTitle: raw.game.title,
     steamUrl: raw.game.steamUrl,
     overallScoreManual: raw.overallScoreManual,
@@ -355,6 +385,7 @@ export async function updateReview(
   reviewId: string,
   authorId: string,
   input: {
+    isPrivate: boolean;
     overallScoreManual: number | null;
     playtimeHours: number | null;
     completed: boolean;
@@ -369,6 +400,7 @@ export async function updateReview(
     const updated = await tx
       .update(reviews)
       .set({
+        isPrivate: input.isPrivate,
         overallScoreManual: input.overallScoreManual,
         playtimeHours: input.playtimeHours,
         completed: input.completed,

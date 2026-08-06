@@ -28,7 +28,13 @@ export default tseslint.config(
         "warn",
         { prefer: "type-imports", fixStyle: "inline-type-imports" },
       ],
-      "@typescript-eslint/no-unused-vars": ["warn", { argsIgnorePattern: "^_" }],
+      // `varsIgnorePattern` en plus de `argsIgnorePattern` : la convention du préfixe `_`
+      // vaut aussi pour une variable délibérément ignorée — typiquement un champ écarté par
+      // déstructuration pour construire un objet sans lui.
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
+      ],
       "@typescript-eslint/require-await": "off",
       "@typescript-eslint/no-misused-promises": [
         "error",

@@ -18,7 +18,7 @@ export const dynamic = "force-dynamic";
 
 export default async function FeedPage() {
   const reader = await getReaderContext();
-  const feed = await getFeed();
+  const feed = await getFeed(reader.userId);
 
   return (
     <main className="flex flex-col gap-s5 p-s5">

@@ -39,6 +39,7 @@ export async function updateReviewAction(
     const data = parsed.data;
 
     const done = await updateReview(reviewId, authorId, {
+      isPrivate: data.isPrivate,
       overallScoreManual: data.overallScoreManual,
       playtimeHours: data.playtimeHours,
       completed: data.completed,

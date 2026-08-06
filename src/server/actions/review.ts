@@ -46,6 +46,7 @@ export async function createReviewAction(
     const reviewId = await createReview({
       gameId,
       authorId,
+      isPrivate: data.isPrivate,
       overallScoreManual: data.overallScoreManual,
       playtimeHours: data.playtimeHours,
       completed: data.completed,

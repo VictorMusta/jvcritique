@@ -36,6 +36,7 @@ type DomainEntry = {
  */
 export type ReviewFormInitial = {
   readonly reviewId: string;
+  readonly isPrivate: boolean;
   readonly gameTitle: string;
   readonly steamUrl: string | null;
   readonly overallScoreManual: number | null;
@@ -96,6 +97,8 @@ export function ReviewForm({
       : "",
   );
   const [completed, setCompleted] = useState(initial?.completed ?? false);
+  // Public par défaut (FR-17).
+  const [isPrivate, setIsPrivate] = useState(initial?.isPrivate ?? false);
   const [texts, setTexts] = useState({
     whyRecommend: initial?.whyRecommend ?? "",
     whatMissed: initial?.whatMissed ?? "",
@@ -165,6 +168,7 @@ export function ReviewForm({
       gameTitle,
       steamUrl,
       overallScoreManual: manualMode ? manualScore : null,
+      isPrivate,
       playtimeHours: playtime.trim() === "" ? null : Number(playtime),
       completed,
       ...texts,
@@ -420,6 +424,29 @@ export function ReviewForm({
         </p>
         <p className="text-[11px] italic text-text-muted">
           Tous facultatifs et indépendants. Remplis ceux qui te viennent.
+        </p>
+      </section>
+
+      {/* --- Confidentialité (FR-17) --- */}
+      <section className="flex flex-col gap-s3">
+        <h2 className="font-display text-[15px] font-semibold">Qui peut le lire</h2>
+        <label className="flex items-start gap-s3 text-[12px]">
+          <input
+            type="checkbox"
+            checked={isPrivate}
+            onChange={(e) => setIsPrivate(e.target.checked)}
+            className="mt-[3px]"
+          />
+          <span>Garder cet avis pour moi</span>
+        </label>
+        {/*
+          Mention PORTEUSE : elle décrit exactement ce que le réglage change, dans les deux
+          sens. « Privé » sans dire ce que fait « public » laisse deviner.
+        */}
+        <p className="text-[12px] italic leading-snug text-text">
+          {isPrivate
+            ? "Personne d'autre que toi ne le verra, ni dans le fil, ni par son lien. Tu peux changer d'avis à tout moment."
+            : "Il apparaîtra dans le fil, et son lien sera lisible par n'importe qui — y compris sans compte. Les passages entre || restent masqués jusqu'à ce qu'on clique dessus."}
         </p>
       </section>
 

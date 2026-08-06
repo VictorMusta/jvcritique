@@ -21,7 +21,7 @@ export default async function ProfilePage() {
     );
   }
 
-  const reviews = await getReviewsByAuthor(reader.userId);
+  const reviews = await getReviewsByAuthor(reader.userId, reader.userId);
 
   return (
     <main className="flex flex-col gap-s6 p-s5">
