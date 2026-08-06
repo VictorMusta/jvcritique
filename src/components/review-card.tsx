@@ -4,15 +4,22 @@ import {
   presentAuthorScore,
   presentReaderScore,
 } from "~/domain/scoring/present-score";
+import {
+  audienceFor,
+  renderForAudience,
+} from "~/domain/spoilers/render-for-audience";
 import type { Weighting } from "~/domain/types";
 import type { ReviewForDisplay } from "~/server/db/queries/reviews";
 import { DomainBars } from "./domain-bars";
 import { ScorePair } from "./score-pair";
+import { SpoilerText } from "./spoiler-text";
 
 type Props = {
   readonly review: ReviewForDisplay;
   /** Nom du lecteur, ou `null` s'il n'est pas connecté. */
   readonly readerName: string | null;
+  /** Identifiant du lecteur, nécessaire pour décider de l'audience des spoilers. */
+  readonly readerId: string | null;
   readonly readerWeighting: Weighting;
   /** Le titre du jeu est masqué sur une fiche de jeu, où il est déjà en tête de page. */
   readonly showGameTitle?: boolean;
@@ -42,9 +49,11 @@ function playtimeLabel(hours: number | null, completed: boolean): string | null 
 export function ReviewCard({
   review,
   readerName,
+  readerId,
   readerWeighting,
   showGameTitle = true,
 }: Props) {
+  const audience = audienceFor(readerId, review.author.id);
   const author = presentAuthorScore({
     authorName: review.author.name ?? "Quelqu'un",
     overallScoreManual: review.overallScoreManual,
@@ -92,9 +101,19 @@ export function ReviewCard({
           <span className="text-[9px] font-bold uppercase tracking-[0.06em] text-text-muted">
             Pourquoi je le recommande
           </span>
-          {/* line-clamp dans le fil : la lecture longue a lieu sur la page de l'avis. */}
+          {/*
+            L'extrait passe par la fonction d'audience, comme n'importe quel texte d'avis.
+            C'est ici que l'oubli aurait été le plus grave : le fil affiche cet extrait sans
+            qu'on ait rien demandé, donc un spoiler non filtré serait vu par tout le monde,
+            immédiatement, sans même ouvrir l'avis.
+
+            line-clamp dans le fil : la lecture longue a lieu sur la page de l'avis.
+          */}
           <p className="line-clamp-3 text-[13px] leading-relaxed">
-            {review.whyRecommend}
+            <SpoilerText
+              segments={renderForAudience(review.whyRecommend, audience)}
+              gameTitle={review.game.title}
+            />
           </p>
         </div>
       ) : null}

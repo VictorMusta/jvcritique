@@ -53,6 +53,8 @@ export const bearingHints = {
     "Une case « pas évaluable » existe si ce domaine n'a pas de sens pour ce jeu. Zéro reste une note légitime.",
   weightingZero:
     "Un domaine à zéro est exclu de ton calcul, mais reste visible à la lecture.",
+  spoilerSyntax:
+    "Entoure un passage de || pour le masquer : ||comme ça||. Personne ne le verra sans cliquer, et un visiteur sans compte ne le recevra même pas.",
 } as const;
 
 /** Mentions de simple confort — atténuées, elles ne changent aucun calcul. */

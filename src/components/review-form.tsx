@@ -12,6 +12,7 @@ import {
 } from "~/domain/types";
 import { bearingHints, comfortHints, domainLabels } from "~/messages/fr";
 import { createReviewAction } from "~/server/actions/review";
+import { updateReviewAction } from "~/server/actions/review-edit";
 
 /**
  * Les trois états d'une Note de domaine, tenus explicitement dans l'état du formulaire.
@@ -26,39 +27,80 @@ type DomainEntry = {
   value: number;
 };
 
-const initialEntries = () => {
+/**
+ * Valeurs de départ en modification (FR-9).
+ *
+ * FR-9 est explicite : « la modification réutilise le formulaire de création, prérempli avec
+ * les valeurs existantes ; il n'existe pas d'écran d'édition distinct ». Un second formulaire
+ * aurait divergé du premier au bout de deux évolutions.
+ */
+export type ReviewFormInitial = {
+  readonly reviewId: string;
+  readonly gameTitle: string;
+  readonly steamUrl: string | null;
+  readonly overallScoreManual: number | null;
+  readonly playtimeHours: number | null;
+  readonly completed: boolean;
+  readonly whyRecommend: string | null;
+  readonly whatMissed: string | null;
+  readonly whatHated: string | null;
+  readonly whyNotRecommend: string | null;
+  readonly domainScores: DomainScores;
+};
+
+const entriesFrom = (scores: DomainScores | undefined) => {
   const entries = {} as Record<DomainKey, DomainEntry>;
+
   for (const key of DOMAIN_KEYS) {
-    entries[key] = { state: "empty", value: 10 };
+    const score = scores?.[key];
+
+    if (score?.kind === "rated") {
+      entries[key] = { state: "rated", value: score.value };
+    } else if (score?.kind === "notApplicable") {
+      entries[key] = { state: "notApplicable", value: 10 };
+    } else {
+      entries[key] = { state: "empty", value: 10 };
+    }
   }
+
   return entries;
 };
 
 export function ReviewForm({
   authorName,
   authorWeighting,
+  initial,
 }: {
   readonly authorName: string;
   readonly authorWeighting: Weighting;
+  /** Absent en création, présent en modification. */
+  readonly initial?: ReviewFormInitial;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const editing = initial !== undefined;
 
-  const [gameTitle, setGameTitle] = useState("");
-  const [steamUrl, setSteamUrl] = useState("");
-  const [entries, setEntries] = useState<Record<DomainKey, DomainEntry>>(
-    initialEntries,
+  const [gameTitle, setGameTitle] = useState(initial?.gameTitle ?? "");
+  const [steamUrl, setSteamUrl] = useState(initial?.steamUrl ?? "");
+  const [entries, setEntries] = useState<Record<DomainKey, DomainEntry>>(() =>
+    entriesFrom(initial?.domainScores),
   );
-  const [manualMode, setManualMode] = useState(false);
-  const [manualScore, setManualScore] = useState(14);
-  const [playtime, setPlaytime] = useState("");
-  const [completed, setCompleted] = useState(false);
+  const [manualMode, setManualMode] = useState(
+    initial?.overallScoreManual !== null && initial?.overallScoreManual !== undefined,
+  );
+  const [manualScore, setManualScore] = useState(initial?.overallScoreManual ?? 14);
+  const [playtime, setPlaytime] = useState(
+    initial?.playtimeHours !== null && initial?.playtimeHours !== undefined
+      ? String(initial.playtimeHours)
+      : "",
+  );
+  const [completed, setCompleted] = useState(initial?.completed ?? false);
   const [texts, setTexts] = useState({
-    whyRecommend: "",
-    whatMissed: "",
-    whatHated: "",
-    whyNotRecommend: "",
+    whyRecommend: initial?.whyRecommend ?? "",
+    whatMissed: initial?.whatMissed ?? "",
+    whatHated: initial?.whatHated ?? "",
+    whyNotRecommend: initial?.whyNotRecommend ?? "",
   });
 
   /**
@@ -119,30 +161,34 @@ export function ReviewForm({
   function submit() {
     setError(null);
 
+    const payload = {
+      gameTitle,
+      steamUrl,
+      overallScoreManual: manualMode ? manualScore : null,
+      playtimeHours: playtime.trim() === "" ? null : Number(playtime),
+      completed,
+      ...texts,
+      domainScores: DOMAIN_KEYS.flatMap((domain) => {
+        const entry = entries[domain];
+        if (entry.state === "empty") {
+          // Un domaine vide n'est PAS envoyé : l'absence est sa représentation, en base
+          // comme dans le moteur de notation.
+          return [];
+        }
+        return [
+          {
+            domain,
+            value: entry.state === "rated" ? entry.value : null,
+            notApplicable: entry.state === "notApplicable",
+          },
+        ];
+      }),
+    };
+
     startTransition(async () => {
-      const result = await createReviewAction({
-        gameTitle,
-        steamUrl,
-        overallScoreManual: manualMode ? manualScore : null,
-        playtimeHours: playtime.trim() === "" ? null : Number(playtime),
-        completed,
-        ...texts,
-        domainScores: DOMAIN_KEYS.flatMap((domain) => {
-          const entry = entries[domain];
-          if (entry.state === "empty") {
-            // Un domaine vide n'est PAS envoyé : l'absence est sa représentation, en base
-            // comme dans le moteur de notation.
-            return [];
-          }
-          return [
-            {
-              domain,
-              value: entry.state === "rated" ? entry.value : null,
-              notApplicable: entry.state === "notApplicable",
-            },
-          ];
-        }),
-      });
+      const result = initial
+        ? await updateReviewAction(initial.reviewId, payload)
+        : await createReviewAction(payload);
 
       if (result.ok) {
         router.push(`/review/${result.data.reviewId}`);
@@ -164,8 +210,19 @@ export function ReviewForm({
           value={gameTitle}
           onChange={(e) => setGameTitle(e.target.value)}
           placeholder="Valheim"
-          className="rounded-[8px] border border-border bg-surface-raised px-s4 py-s3 text-[13px]"
+          /*
+           * Le jeu ne change pas en modification : changer le jeu d'un avis, c'est écrire un
+           * autre avis. La contrainte d'unicité (auteur, jeu) le refuserait de toute façon —
+           * autant l'empêcher ici plutôt que d'échouer après coup.
+           */
+          disabled={editing}
+          className="rounded-[8px] border border-border bg-surface-raised px-s4 py-s3 text-[13px] disabled:text-text-muted"
         />
+        {editing ? (
+          <p className="text-[11px] italic text-text-muted">
+            Le jeu ne se change pas. Pour parler d&apos;un autre jeu, écris un nouvel avis.
+          </p>
+        ) : null}
         <label htmlFor="steamUrl" className="text-[12px] text-text-muted">
           Lien Steam
         </label>
@@ -357,6 +414,10 @@ export function ReviewForm({
             />
           </div>
         ))}
+        {/* Mention PORTEUSE : la syntaxe des spoilers change ce que les autres verront. */}
+        <p className="text-[12px] italic leading-snug text-text">
+          {bearingHints.spoilerSyntax}
+        </p>
         <p className="text-[11px] italic text-text-muted">
           Tous facultatifs et indépendants. Remplis ceux qui te viennent.
         </p>
@@ -369,7 +430,13 @@ export function ReviewForm({
           disabled={pending || gameTitle.trim() === "" || !hasAnyScore}
           className="rounded-[8px] border border-accent bg-accent px-s5 py-[13px] font-semibold text-bg disabled:opacity-50"
         >
-          {pending ? "Publication…" : "Publier"}
+          {pending
+            ? editing
+              ? "Enregistrement…"
+              : "Publication…"
+            : editing
+              ? "Enregistrer les modifications"
+              : "Publier"}
         </button>
 
         {/* Le bouton dit POURQUOI il est inactif. Un bouton grisé sans explication laisse

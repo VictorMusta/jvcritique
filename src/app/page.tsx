@@ -66,6 +66,7 @@ export default async function FeedPage() {
               key={review.id}
               review={review}
               readerName={reader.name}
+              readerId={reader.userId}
               readerWeighting={reader.weighting}
             />
           ))}

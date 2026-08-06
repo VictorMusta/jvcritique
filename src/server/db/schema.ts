@@ -263,7 +263,64 @@ export const reviewsRelations = relations(reviews, ({ one, many }) => ({
   game: one(games, { fields: [reviews.gameId], references: [games.id] }),
   author: one(users, { fields: [reviews.authorId], references: [users.id] }),
   domainScores: many(reviewDomainScores),
+  updateNotes: many(reviewUpdateNotes),
 }));
+
+// =================================================================================
+// Notes de mise à jour — FR-10
+// =================================================================================
+
+/**
+ * Une Note de mise à jour datée, ajoutée sans toucher au corps d'origine.
+ *
+ * Table à part et non un champ texte de plus sur l'avis : FR-10 les veut multiples,
+ * datées, et lues à la suite. Un champ unique obligerait l'auteur à écraser sa mise à jour
+ * précédente — l'inverse de l'usage visé, qui est de laisser une trace de l'évolution de
+ * son avis après une mise à jour du jeu.
+ *
+ * Il n'y a PAS de colonne auteur : seul l'auteur de l'avis peut en ajouter (FR-10), donc
+ * l'auteur est celui de l'avis parent. Une colonne séparée autoriserait structurellement
+ * un tiers à en écrire une, et ce n'est pas un fil de commentaires.
+ */
+export const reviewUpdateNotes = createTable(
+  "review_update_note",
+  (d) => ({
+    id: d.uuid().primaryKey().defaultRandom(),
+    reviewId: d
+      .uuid()
+      .notNull()
+      .references(() => reviews.id, { onDelete: "cascade" }),
+    body: d.text().notNull(),
+    createdAt: d
+      .timestamp({ mode: "date", withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  }),
+  (t) => [
+    index("review_update_note_review_id_idx").on(t.reviewId),
+    /**
+     * Une note vide n'a aucun sens : elle s'afficherait comme une section datée sans
+     * contenu.
+     *
+     * Formulé « contient au moins un caractère non blanc » et non `length(trim(...)) > 0`.
+     * Le `trim` de PostgreSQL ne retire **que les espaces** — pas les tabulations, pas les
+     * sauts de ligne. Un corps fait de `"   \n  "` survivait donc au trim sous la forme
+     * `"\n"`, de longueur 1, et passait la contrainte. Trouvé par un test d'intégration,
+     * invisible autrement.
+     */
+    check("review_update_note_body_not_blank", sql`${t.body} ~ '[^[:space:]]'`),
+  ],
+);
+
+export const reviewUpdateNotesRelations = relations(
+  reviewUpdateNotes,
+  ({ one }) => ({
+    review: one(reviews, {
+      fields: [reviewUpdateNotes.reviewId],
+      references: [reviews.id],
+    }),
+  }),
+);
 
 // =================================================================================
 // Notes de domaine — D1 : table fille + CHECK

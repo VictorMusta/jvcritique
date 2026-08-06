@@ -182,6 +182,29 @@ describe("Avis — unicité et bornes (FR-5, FR-9, FR-22)", () => {
   });
 });
 
+describe("Note de mise à jour — corps non vide (FR-10)", () => {
+  const insertNote = (body: string) =>
+    sql`insert into jvcritique_review_update_note ("reviewId", body) values (${reviewId}, ${body})`;
+
+  it("accepte une note avec du contenu", async () => {
+    expect(await violatedConstraint(() => insertNote("Le patch a tout changé."))).toBeNull();
+  });
+
+  it("REFUSE une note vide", async () => {
+    expect(await violatedConstraint(() => insertNote(""))).toBe(
+      "review_update_note_body_not_blank",
+    );
+  });
+
+  it("REFUSE une note faite d'espaces", async () => {
+    // `trim` dans la contrainte : trois espaces sont aussi vides qu'une chaîne vide, et
+    // s'afficheraient comme une section datée sans contenu.
+    expect(await violatedConstraint(() => insertNote("   \n  "))).toBe(
+      "review_update_note_body_not_blank",
+    );
+  });
+});
+
 describe("Catalogue — dédoublonnage des jeux (FR-11)", () => {
   it("REFUSE un titre identique à la casse près", async () => {
     // Sans l'index unique sur `lower(title)`, « Valheim » et « valheim » créeraient deux

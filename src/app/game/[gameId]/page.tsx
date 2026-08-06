@@ -57,6 +57,7 @@ export default async function GamePage({
             key={review.id}
             review={review}
             readerName={reader.name}
+            readerId={reader.userId}
             readerWeighting={reader.weighting}
             showGameTitle={false}
           />
