@@ -54,6 +54,12 @@ export default async function ProfilePage() {
                * paire de notes sert à montrer.
                */
               readerName={null}
+              /*
+               * `readerId` reste renseigné même si `readerName` est nul : la note relue est
+               * inutile sur ses propres avis, mais l'audience des spoilers doit rester
+               * « auteur » — sinon Victor verrait ses propres passages masqués chez lui.
+               */
+              readerId={reader.userId}
               readerWeighting={{}}
             />
           ))

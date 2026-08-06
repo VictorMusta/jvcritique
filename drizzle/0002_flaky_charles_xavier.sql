@@ -1,0 +1,2 @@
+ALTER TABLE "jvcritique_review_update_note" DROP CONSTRAINT "review_update_note_body_not_blank";--> statement-breakpoint
+ALTER TABLE "jvcritique_review_update_note" ADD CONSTRAINT "review_update_note_body_not_blank" CHECK ("jvcritique_review_update_note"."body" ~ '[^[:space:]]');

@@ -3,10 +3,16 @@ import { notFound } from "next/navigation";
 
 import { DomainBars } from "~/components/domain-bars";
 import { ScorePair } from "~/components/score-pair";
+import { SpoilerScope, SpoilerText } from "~/components/spoiler-text";
+import { UpdateNoteForm } from "~/components/update-note-form";
 import {
   presentAuthorScore,
   presentReaderScore,
 } from "~/domain/scoring/present-score";
+import {
+  audienceFor,
+  renderForAudience,
+} from "~/domain/spoilers/render-for-audience";
 import { getReviewById } from "~/server/db/queries/reviews";
 import { getReaderContext } from "~/server/reader";
 
@@ -33,6 +39,31 @@ export default async function ReviewPage({
   }
 
   const reader = await getReaderContext();
+  const isAuthor = reader.userId === review.author.id;
+
+  /*
+   * L'audience est décidée UNE FOIS, puis appliquée à tous les champs. La calculer par
+   * champ ouvrirait la possibilité qu'un champ soit rendu avec la mauvaise.
+   */
+  const audience = audienceFor(reader.userId, review.author.id);
+
+  // Chaque champ passe par la fonction d'audience — frontière 4 : c'est le seul chemin d'un
+  // texte d'avis vers quelque chose d'affichable.
+  const sections = argued.flatMap(({ key, label }) => {
+    const body = review[key];
+
+    if (body === null) {
+      return [];
+    }
+
+    return [{ key, label, segments: renderForAudience(body, audience) }];
+  });
+
+  // FR-6 : « tout révéler » agit sur l'avis entier, donc l'information doit être calculée
+  // sur l'ensemble des champs, pas champ par champ.
+  const hasSpoilers = sections.some((section) =>
+    section.segments.some((segment) => segment.kind === "spoiler"),
+  );
 
   const author = presentAuthorScore({
     authorName: review.author.name ?? "Quelqu'un",
@@ -41,11 +72,7 @@ export default async function ReviewPage({
     authorWeighting: review.authorWeighting,
   });
 
-  const readerScore = presentReaderScore(
-    review,
-    reader.name,
-    reader.weighting,
-  );
+  const readerScore = presentReaderScore(review, reader.name, reader.weighting);
 
   const playtime: string[] = [];
   if (review.playtimeHours !== null) {
@@ -54,6 +81,12 @@ export default async function ReviewPage({
   if (review.completed) {
     playtime.push("terminé");
   }
+
+  const dateFormat: Intl.DateTimeFormatOptions = {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  };
 
   return (
     <main className="flex flex-col gap-s5 p-s5">
@@ -68,13 +101,26 @@ export default async function ReviewPage({
           {playtime.length > 0 ? <> · {playtime.join(" · ")}</> : null}
           {" · "}
           <time dateTime={review.createdAt.toISOString()}>
-            {review.createdAt.toLocaleDateString("fr-FR", {
-              day: "numeric",
-              month: "long",
-              year: "numeric",
-            })}
+            {review.createdAt.toLocaleDateString("fr-FR", dateFormat)}
           </time>
+          {/* FR-9 : un avis modifié porte une date de dernière modification VISIBLE. */}
+          {review.updatedAt ? (
+            <>
+              {" · modifié le "}
+              <time dateTime={review.updatedAt.toISOString()}>
+                {review.updatedAt.toLocaleDateString("fr-FR", dateFormat)}
+              </time>
+            </>
+          ) : null}
         </p>
+        {isAuthor ? (
+          <Link
+            href={`/review/${review.id}/edit`}
+            className="self-start text-[12px] font-semibold text-accent"
+          >
+            Modifier
+          </Link>
+        ) : null}
       </header>
 
       {author ? (
@@ -92,24 +138,52 @@ export default async function ReviewPage({
         <DomainBars scores={review.domainScores} />
       </section>
 
-      {argued.map(({ key, label }) => {
-        const text = review[key];
+      {/* Une seule portée pour tout l'avis : « tout révéler » découvre les passages de TOUS
+          les champs, pas seulement celui qu'on a cliqué. */}
+      <SpoilerScope hasSpoilers={hasSpoilers}>
+        <div className="flex flex-col gap-s5">
+          {sections.map(({ key, label, segments }) => (
+            <section key={key} className="flex flex-col gap-s2">
+              <h2 className="text-[9px] font-bold uppercase tracking-[0.06em] text-text-muted">
+                {label}
+              </h2>
+              <p className="text-[13px] leading-relaxed">
+                <SpoilerText segments={segments} gameTitle={review.game.title} />
+              </p>
+            </section>
+          ))}
+        </div>
+      </SpoilerScope>
 
-        if (text === null) {
-          return null;
-        }
+      {/* Notes de mise à jour, après le corps, dans l'ordre chronologique (FR-10). */}
+      {review.updateNotes.length > 0 ? (
+        <section className="flex flex-col gap-s4">
+          <h2 className="text-[9px] font-bold uppercase tracking-[0.06em] text-text-muted">
+            Mises à jour
+          </h2>
+          {review.updateNotes.map((note) => (
+            <article
+              key={note.id}
+              className="flex flex-col gap-s2 rounded-[10px] border border-border bg-surface p-s4"
+            >
+              <time
+                dateTime={note.createdAt.toISOString()}
+                className="text-[11px] text-text-muted"
+              >
+                {note.createdAt.toLocaleDateString("fr-FR", dateFormat)}
+              </time>
+              <p className="text-[13px] leading-relaxed">
+                <SpoilerText
+                  segments={renderForAudience(note.body, audience)}
+                  gameTitle={review.game.title}
+                />
+              </p>
+            </article>
+          ))}
+        </section>
+      ) : null}
 
-        return (
-          <section key={key} className="flex flex-col gap-s2">
-            <h2 className="text-[9px] font-bold uppercase tracking-[0.06em] text-text-muted">
-              {label}
-            </h2>
-            {/* whitespace-pre-line : les sauts de ligne de l'auteur sont conservés. Sans
-                ça, un avis rédigé en paragraphes s'affiche en un bloc illisible. */}
-            <p className="whitespace-pre-line text-[13px] leading-relaxed">{text}</p>
-          </section>
-        );
-      })}
+      {isAuthor ? <UpdateNoteForm reviewId={review.id} /> : null}
 
       {review.game.steamUrl ? (
         <a
