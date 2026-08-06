@@ -6,6 +6,7 @@ const base = {
   gameTitle: "Valheim",
   steamUrl: null,
   overallScoreManual: null,
+  isPrivate: false,
   playtimeHours: null,
   completed: false,
   whyRecommend: null,
@@ -185,6 +186,20 @@ describe("reviewInputSchema — champs et normalisation", () => {
     expect(
       reviewInputSchema.safeParse({ ...base, playtimeHours: 4000 }).success,
     ).toBe(true);
+  });
+
+  it("exige que la confidentialité soit dite explicitement (FR-17)", () => {
+    // `isPrivate` n'a pas de valeur par défaut dans le schéma, volontairement : un avis
+    // publié est lisible par n'importe qui, y compris sans compte. Laisser le champ optionnel
+    // rendrait « public » le résultat d'un oubli plutôt que d'un choix.
+    const { isPrivate: _omitted, ...withoutFlag } = base;
+
+    expect(reviewInputSchema.safeParse(withoutFlag).success).toBe(false);
+  });
+
+  it("accepte un avis privé comme un avis public", () => {
+    expect(reviewInputSchema.safeParse({ ...base, isPrivate: true }).success).toBe(true);
+    expect(reviewInputSchema.safeParse({ ...base, isPrivate: false }).success).toBe(true);
   });
 
   it("refuse le même domaine deux fois", () => {

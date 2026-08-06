@@ -222,6 +222,16 @@ export const reviews = createTable(
      */
     overallScoreManual: d.smallint(),
 
+    /**
+     * Avis privé — FR-17. Public par défaut.
+     *
+     * Avancée avant l'heure : la V0 rend les avis lisibles sans compte, et livrer ça sans
+     * moyen de rendre un avis privé serait pire que le problème d'origine. Passer un avis en
+     * privé invalide immédiatement l'accès par son URL — il n'y a pas de cache à purger,
+     * puisqu'il n'y a pas de cache (D3).
+     */
+    isPrivate: d.boolean().notNull().default(false),
+
     /** Temps de jeu en heures, entier, sans borne haute (FR-22). */
     playtimeHours: d.integer(),
     /** Jeu terminé — indépendant du temps de jeu : 40 h sans finir, 6 h et fini. */

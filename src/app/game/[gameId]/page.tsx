@@ -19,10 +19,11 @@ export default async function GamePage({
     notFound();
   }
 
-  const [reader, reviews] = await Promise.all([
-    getReaderContext(),
-    getReviewsByGame(gameId),
-  ]);
+  // Séquentiel et non `Promise.all` : la liste des avis DÉPEND du lecteur, puisqu'un avis
+  // privé n'est visible que de son auteur (FR-17). Les paralléliser reviendrait à demander
+  // les avis avant de savoir qui les demande.
+  const reader = await getReaderContext();
+  const reviews = await getReviewsByGame(gameId, reader.userId);
 
   return (
     <main className="flex flex-col gap-s5 p-s5">

@@ -68,6 +68,9 @@ export const reviewInputSchema = z
     /** `null` signifie « calculée depuis les notes de domaine » (FR-5). */
     overallScoreManual: z.number().int().min(0).max(20).nullable(),
 
+    /** Avis privé — public par défaut (FR-17). */
+    isPrivate: z.boolean(),
+
     /** Entier, sans borne haute (FR-22). */
     playtimeHours: z.number().int().min(0).nullable(),
     completed: z.boolean(),

@@ -183,10 +183,15 @@ export function SpoilerText({
             );
 
           case "redacted":
-            // Audience anonyme : il n'y a aucun texte à rendre, le segment n'en porte pas.
+            /*
+             * Audience « extrait ». Ce cas ne devrait pas atteindre ce composant : un extrait
+             * est une chaîne de caractères pour une balise Open Graph, pas une page. Rendu
+             * quand même, sans texte, pour que le type reste exhaustif — si ce marqueur
+             * apparaît un jour à l'écran, c'est qu'une surface appelle la mauvaise audience.
+             */
             return (
               <span key={index} className="text-[12px] italic text-text-muted">
-                [passage masqué — connecte-toi pour le lire]
+                [passage masqué]
               </span>
             );
         }

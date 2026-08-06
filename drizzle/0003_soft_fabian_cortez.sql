@@ -1,0 +1,1 @@
+ALTER TABLE "jvcritique_review" ADD COLUMN "isPrivate" boolean DEFAULT false NOT NULL;

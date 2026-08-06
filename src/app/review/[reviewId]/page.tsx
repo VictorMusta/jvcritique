@@ -42,6 +42,33 @@ export default async function ReviewPage({
   const isAuthor = reader.userId === review.author.id;
 
   /*
+   * Avis privé — FR-17. Seul l'auteur y accède.
+   *
+   * FR-16 exige une page « avis non public » EXPLICITE, et pas une erreur technique. La
+   * différence compte : un lien partagé puis passé en privé doit expliquer ce qui s'est
+   * passé, sinon celui qui clique croit que le site est cassé.
+   *
+   * On ne révèle rien d'autre : ni le jeu, ni l'auteur, ni la date. Le seul fait divulgué est
+   * qu'un avis existe à cette adresse — inévitable, puisque l'URL a été partagée.
+   */
+  if (review.isPrivate && !isAuthor) {
+    return (
+      <main className="flex flex-col items-start gap-s4 p-s5">
+        <h1 className="font-display text-[25px] font-semibold leading-tight">
+          Cet avis n&apos;est pas public
+        </h1>
+        <p className="text-[13px] text-text-muted">
+          Son auteur l&apos;a gardé pour lui. Ça arrive — parfois on écrit d&apos;abord pour
+          soi.
+        </p>
+        <Link href="/" className="text-[12px] font-semibold text-accent">
+          Retour au fil
+        </Link>
+      </main>
+    );
+  }
+
+  /*
    * L'audience est décidée UNE FOIS, puis appliquée à tous les champs. La calculer par
    * champ ouvrirait la possibilité qu'un champ soit rendu avec la mauvaise.
    */
