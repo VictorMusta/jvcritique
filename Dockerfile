@@ -31,13 +31,18 @@ RUN npm run build
 # ---------------------------------------------------------------------------
 # Migrations (D20) — conteneur éphémère, appliqué avant le démarrage de l'application
 # ---------------------------------------------------------------------------
-# Séparé de l'image applicative parce qu'il a besoin de drizzle-kit, donc des
-# devDependencies, que l'image de production n'embarque pas.
+# Il n'embarque QUE le script de migration et les fichiers SQL : ni le code de
+# l'application, ni le schéma Drizzle, ni la configuration de drizzle-kit.
+#
+# C'est le migrateur programmatique de `drizzle-orm` qui est utilisé, pas la commande
+# `drizzle-kit` — laquelle mourait en code 1 sans aucun message quand la connexion échouait.
+# Bénéfice de bord : le conteneur qui détient les identifiants de la base ne contient plus
+# une ligne du code applicatif.
 FROM base AS migrate
 COPY --from=deps /app/node_modules ./node_modules
-COPY package.json tsconfig.json drizzle.config.ts ./
+COPY package.json ./
+COPY scripts ./scripts
 COPY drizzle ./drizzle
-COPY src ./src
 CMD ["npm", "run", "db:migrate"]
 
 # ---------------------------------------------------------------------------
