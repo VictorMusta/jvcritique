@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { SignInButton } from "~/components/auth-buttons";
+import { InstallPrompt } from "~/components/install-prompt";
 import { ReviewCard } from "~/components/review-card";
 import { getFeed } from "~/server/db/queries/reviews";
 import { getReaderContext } from "~/server/reader";
@@ -26,7 +27,10 @@ export default async function FeedPage() {
         <h1 className="font-display text-[25px] font-semibold leading-tight">
           jvcritiqué
         </h1>
-        {reader.userId === null ? <SignInButton label="Se connecter" /> : null}
+        <div className="flex items-center gap-s3">
+          <InstallPrompt />
+          {reader.userId === null ? <SignInButton label="Se connecter" /> : null}
+        </div>
       </header>
 
       {reader.userId !== null && Object.keys(reader.weighting).length === 0 ? (
