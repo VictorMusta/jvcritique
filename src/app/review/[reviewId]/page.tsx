@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { DomainBars } from "~/components/domain-bars";
+import { Reactions } from "~/components/reactions";
 import { ScorePair } from "~/components/score-pair";
 import { SpoilerScope, SpoilerText } from "~/components/spoiler-text";
 import { UpdateNoteForm } from "~/components/update-note-form";
@@ -209,6 +210,13 @@ export default async function ReviewPage({
           ))}
         </section>
       ) : null}
+
+      <Reactions
+        reviewId={review.id}
+        reactions={review.reactions}
+        viewerId={reader.userId}
+        isAuthor={isAuthor}
+      />
 
       {isAuthor ? <UpdateNoteForm reviewId={review.id} /> : null}
 
