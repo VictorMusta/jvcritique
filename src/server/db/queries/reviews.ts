@@ -42,6 +42,21 @@ function toDomainScores(rows: DomainScoreRow[]): DomainScores {
 
 export type UpdateNote = { id: string; body: string; createdAt: Date };
 
+export type ReactionKind = "tempting" | "sameHere" | "disagree";
+
+/**
+ * Une réaction, avec le NOM de qui l'a posée.
+ *
+ * Le nom et pas seulement un compteur : à cinq amis, « Paul et Marie » dit infiniment plus
+ * que « 2 ». Un compteur est la bonne abstraction quand la foule est anonyme ; ici la foule
+ * n'existe pas, ce sont des gens qu'on connaît.
+ */
+export type Reaction = {
+  kind: ReactionKind;
+  userId: string;
+  userName: string | null;
+};
+
 /**
  * Condition de visibilité — FR-17.
  *
@@ -66,6 +81,7 @@ export type ReviewForDisplay = {
   /** Date de dernière modification, visible quand l'avis a été modifié (FR-9). */
   updatedAt: Date | null;
   updateNotes: UpdateNote[];
+  reactions: Reaction[];
   overallScoreManual: number | null;
   playtimeHours: number | null;
   completed: boolean;
@@ -121,6 +137,7 @@ const reviewWith = {
   author: true,
   domainScores: true,
   updateNotes: true,
+  reactions: { with: { user: { columns: { id: true, name: true } } } },
 } as const;
 
 type RawReview = {
@@ -129,6 +146,13 @@ type RawReview = {
   isPrivate: boolean;
   updatedAt: Date | null;
   updateNotes: UpdateNote[];
+  // Forme BRUTE, telle qu'elle sort de la requête relationnelle : l'utilisateur y est
+  // imbriqué. `assemble` l'aplatit vers `Reaction`, plus simple à consommer côté affichage.
+  reactions: {
+    kind: ReactionKind;
+    userId: string;
+    user: { id: string; name: string | null };
+  }[];
   overallScoreManual: number | null;
   playtimeHours: number | null;
   completed: boolean;
@@ -159,6 +183,11 @@ function assemble(
     updateNotes: [...raw.updateNotes].sort(
       (a, b) => a.createdAt.getTime() - b.createdAt.getTime(),
     ),
+    reactions: raw.reactions.map((r) => ({
+      kind: r.kind,
+      userId: r.userId,
+      userName: r.user.name,
+    })),
     overallScoreManual: raw.overallScoreManual,
     playtimeHours: raw.playtimeHours,
     completed: raw.completed,

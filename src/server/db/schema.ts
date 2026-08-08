@@ -274,6 +274,69 @@ export const reviewsRelations = relations(reviews, ({ one, many }) => ({
   author: one(users, { fields: [reviews.authorId], references: [users.id] }),
   domainScores: many(reviewDomainScores),
   updateNotes: many(reviewUpdateNotes),
+  reactions: many(reviewReactions),
+}));
+
+// =================================================================================
+// Réactions — hors PRD, ajoutées le 8 août 2026
+// =================================================================================
+
+/**
+ * Les trois réactions possibles.
+ *
+ * `tempting` n'est pas une de plus : c'est LA mesure du succès du produit. jvcritiqué est
+ * né d'un échec précis — ne pas réussir à convaincre cinq amis de jouer à Valheim. Un pote
+ * qui lit un avis et coche « ça me tente », c'est exactement ce que l'application est censée
+ * provoquer, et rien d'autre dans le schéma ne l'enregistrait.
+ */
+export const reactionKindEnum = pgEnum("jvcritique_reaction_kind", [
+  "tempting",
+  "sameHere",
+  "disagree",
+]);
+
+/**
+ * Une réaction par personne et par avis — et surtout, PAS un fil de commentaires.
+ *
+ * Le PRD déclare en non-objectif « ce n'est pas un réseau social : pas de commentaires sous
+ * les avis d'autrui ». Victor a voulu rouvrir le sujet ; on a retenu les réactions plutôt
+ * que les commentaires, ce qui donne le signal social sans créer de surface de modération,
+ * sans appeler de notifications, et sans déplacer le centre de gravité du produit vers la
+ * discussion — qui a déjà lieu sur leur Discord.
+ *
+ * La clé primaire `(reviewId, userId)` porte la règle « une seule réaction par personne » :
+ * changer d'avis remplace la ligne, il n'y a pas d'historique à gérer. C'est la BASE qui
+ * l'interdit, pas une vérification applicative qu'on peut oublier.
+ */
+export const reviewReactions = createTable(
+  "review_reaction",
+  (d) => ({
+    reviewId: d
+      .uuid()
+      .notNull()
+      .references(() => reviews.id, { onDelete: "cascade" }),
+    userId: d
+      .varchar({ length: 255 })
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    kind: reactionKindEnum().notNull(),
+    createdAt: d
+      .timestamp({ mode: "date", withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  }),
+  (t) => [
+    primaryKey({ columns: [t.reviewId, t.userId] }),
+    index("review_reaction_review_id_idx").on(t.reviewId),
+  ],
+);
+
+export const reviewReactionsRelations = relations(reviewReactions, ({ one }) => ({
+  review: one(reviews, {
+    fields: [reviewReactions.reviewId],
+    references: [reviews.id],
+  }),
+  user: one(users, { fields: [reviewReactions.userId], references: [users.id] }),
 }));
 
 // =================================================================================

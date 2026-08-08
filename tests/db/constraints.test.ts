@@ -182,6 +182,48 @@ describe("Avis — unicité et bornes (FR-5, FR-9, FR-22)", () => {
   });
 });
 
+describe("Réaction — une seule par personne et par avis", () => {
+  const otherId = `${run}-autre`;
+
+  const react = (kind: string) =>
+    sql`insert into jvcritique_review_reaction ("reviewId", "userId", kind)
+        values (${reviewId}, ${otherId}, ${kind}::jvcritique_reaction_kind)`;
+
+  beforeAll(async () => {
+    await sql`insert into jvcritique_user (id, email, name)
+              values (${otherId}, ${`${run}-autre@exemple.fr`}, 'Un ami')`;
+  });
+
+  it("accepte une réaction", async () => {
+    expect(await violatedConstraint(() => react("tempting"))).toBeNull();
+  });
+
+  it("REFUSE une seconde réaction de la même personne sur le même avis", async () => {
+    // La règle est portée par la CLÉ PRIMAIRE, pas par une vérification applicative :
+    // changer d'avis remplace la ligne, il n'y a pas d'historique à gérer.
+    expect(await violatedConstraint(() => react("disagree"))).toBe(
+      "jvcritique_review_reaction_reviewId_userId_pk",
+    );
+  });
+
+  it("permet de CHANGER sa réaction par un upsert", async () => {
+    await sql`insert into jvcritique_review_reaction ("reviewId", "userId", kind)
+              values (${reviewId}, ${otherId}, 'disagree'::jvcritique_reaction_kind)
+              on conflict ("reviewId", "userId") do update set kind = excluded.kind`;
+
+    const rows = await sql<{ kind: string }[]>`
+      select kind from jvcritique_review_reaction
+      where "reviewId" = ${reviewId} and "userId" = ${otherId}`;
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.kind).toBe("disagree");
+  });
+
+  it("REFUSE une réaction absente du glossaire", async () => {
+    await expect(react("jaime")).rejects.toThrow();
+  });
+});
+
 describe("Note de mise à jour — corps non vide (FR-10)", () => {
   const insertNote = (body: string) =>
     sql`insert into jvcritique_review_update_note ("reviewId", body) values (${reviewId}, ${body})`;

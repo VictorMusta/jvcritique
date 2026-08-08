@@ -57,6 +57,19 @@ export const bearingHints = {
     "Entoure un passage de || pour le masquer : ||comme ça||. Personne ne le verra sans cliquer, et un visiteur sans compte ne le recevra même pas.",
 } as const;
 
+/**
+ * Réactions à un avis.
+ *
+ * Trois seulement, et c'est délibéré : une liste plus longue transformerait un geste en
+ * choix, et un choix en hésitation. « Ça me tente » est la première parce que c'est celle
+ * qui mesure la raison d'être du produit.
+ */
+export const reactionLabels = {
+  tempting: "Ça me tente",
+  sameHere: "Moi aussi",
+  disagree: "Pas d'accord",
+} as const;
+
 /** Mentions de simple confort — atténuées, elles ne changent aucun calcul. */
 export const comfortHints = {
   optional: "Facultatif.",
