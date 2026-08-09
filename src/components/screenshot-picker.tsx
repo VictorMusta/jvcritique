@@ -123,6 +123,71 @@ export function ScreenshotPicker({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  /*
+   * BOUTON DE COLLAGE — demandé par Victor après coup, et il a raison.
+   *
+   * Le geste natif ne suffit pas sur téléphone : l'appui long ne propose « Coller » que si
+   * l'élément visé accepte du texte. Sur un formulaire dont la zone de captures n'est pas un
+   * champ de saisie, il n'y a souvent RIEN à viser. Un bouton ne dépend de rien.
+   *
+   * Il n'apparaît que si le navigateur sait lire le presse-papiers. Un bouton qui échoue
+   * toujours est pire que pas de bouton : la voie du geste natif, elle, reste ouverte.
+   */
+  const [peutLire, setPeutLire] = useState(false);
+
+  useEffect(() => {
+    // Testé au montage et pas au rendu : `navigator` n'existe pas sur le serveur, et le
+    // rendu serveur et le rendu client différeraient.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setPeutLire(typeof navigator !== "undefined" && "clipboard" in navigator &&
+      typeof navigator.clipboard.read === "function");
+  }, []);
+
+  async function collerDepuisPressePapiers() {
+    setErreurs([]);
+
+    try {
+      const elements = await navigator.clipboard.read();
+      const fichiers: File[] = [];
+
+      for (const element of elements) {
+        // Un élément de presse-papiers porte PLUSIEURS représentations du même contenu —
+        // une image copiée depuis une page web arrive souvent avec son HTML. On prend la
+        // première qui est une image et on ignore le reste.
+        const type = element.types.find((t) => t.startsWith("image/"));
+
+        if (type !== undefined) {
+          const blob = await element.getType(type);
+          const extension = type.split("/")[1] ?? "png";
+          fichiers.push(
+            new File([blob], `presse-papiers.${extension}`, { type }),
+          );
+        }
+      }
+
+      if (fichiers.length === 0) {
+        setErreurs([
+          "Le presse-papiers ne contient pas d’image. Copie une capture, puis reviens ici.",
+        ]);
+        return;
+      }
+
+      await deposer(fichiers);
+    } catch {
+      /*
+       * Un seul message pour tous les échecs, et c'est délibéré.
+       *
+       * Permission refusée, presse-papiers vide, navigateur qui exige un geste plus direct :
+       * du point de vue de celui qui clique, c'est la même situation et le même recours. Lui
+       * détailler laquelle des trois s'est produite ne l'avancerait à rien.
+       */
+      setErreurs([
+        "Impossible de lire le presse-papiers — ton navigateur l’a refusé. " +
+          "Tu peux toujours passer par « Choisir un fichier », ou coller directement avec Ctrl+V.",
+      ]);
+    }
+  }
+
   function retirer(cle: string) {
     onChange(images.filter((i) => i.storageKey !== cle));
   }
@@ -197,10 +262,32 @@ export function ScreenshotPicker({
           className="text-[12px] text-text-muted file:mr-s4 file:rounded-[8px] file:border file:border-border file:bg-surface-raised file:px-s4 file:py-s2 file:text-[12px] file:text-text"
         />
 
+        {peutLire ? (
+          <button
+            type="button"
+            onClick={() => void collerDepuisPressePapiers()}
+            className="mt-s3 flex items-center gap-s2 rounded-[8px] border border-accent px-s4 py-s3 text-[12px] font-semibold text-accent-text"
+          >
+            <svg
+              width="13"
+              height="13"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <rect x="8" y="2" width="8" height="4" rx="1" />
+              <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+            </svg>
+            Coller du presse-papiers
+          </button>
+        ) : null}
+
         <p className="mt-s3 text-[11px] italic leading-snug text-text-muted">
-          Tu peux aussi <strong className="font-semibold not-italic">coller</strong> une image
-          — appui long puis « Coller » sur téléphone, Ctrl+V sur ordinateur — ou la faire
-          glisser ici.
+          Tu peux aussi faire glisser une image ici, ou la coller avec Ctrl+V.
         </p>
       </div>
 
