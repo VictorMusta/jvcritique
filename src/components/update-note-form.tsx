@@ -68,7 +68,7 @@ export function UpdateNoteForm({ reviewId }: { readonly reviewId: string }) {
           type="button"
           onClick={submit}
           disabled={pending || body.trim() === ""}
-          className="rounded-[8px] border border-accent bg-accent px-s5 py-s3 text-[12px] font-semibold text-bg disabled:opacity-50"
+          className="rounded-[8px] border border-accent bg-accent px-s5 py-s3 text-[12px] font-semibold text-on-accent disabled:opacity-50"
         >
           {pending ? "Ajout…" : "Ajouter"}
         </button>

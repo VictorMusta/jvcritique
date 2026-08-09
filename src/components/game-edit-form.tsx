@@ -91,7 +91,7 @@ export function GameEditForm({
           type="button"
           onClick={save}
           disabled={pending || title.trim() === ""}
-          className="rounded-[8px] border border-accent bg-accent px-s5 py-s3 text-[12px] font-semibold text-bg disabled:opacity-50"
+          className="rounded-[8px] border border-accent bg-accent px-s5 py-s3 text-[12px] font-semibold text-on-accent disabled:opacity-50"
         >
           {pending ? "Enregistrement…" : "Enregistrer"}
         </button>

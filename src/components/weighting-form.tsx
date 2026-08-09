@@ -97,7 +97,7 @@ export function WeightingForm({ initial }: { readonly initial: Weighting }) {
           type="button"
           onClick={save}
           disabled={pending}
-          className="rounded-[8px] border border-accent bg-accent px-s5 py-[13px] font-semibold text-bg disabled:opacity-60"
+          className="rounded-[8px] border border-accent bg-accent px-s5 py-[13px] font-semibold text-on-accent disabled:opacity-60"
         >
           {pending ? "Enregistrement…" : "Enregistrer mes critères"}
         </button>

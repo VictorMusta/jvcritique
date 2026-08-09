@@ -1,6 +1,9 @@
 import { SignInButton, SignOutButton } from "~/components/auth-buttons";
 import { ReviewCard } from "~/components/review-card";
+import { ThemePicker } from "~/components/theme-picker";
 import { WeightingForm } from "~/components/weighting-form";
+import { themeValide } from "~/domain/themes";
+import { cookies } from "next/headers";
 import { getReviewsByAuthor } from "~/server/db/queries/reviews";
 import { getReaderContext } from "~/server/reader";
 
@@ -33,6 +36,8 @@ export default async function ProfilePage() {
       </header>
 
       <WeightingForm initial={reader.weighting} />
+
+      <ThemePicker actuel={themeValide((await cookies()).get("theme")?.value)} />
 
       <section className="flex flex-col gap-s4">
         <h2 className="font-display text-[15px] font-semibold">

@@ -4,6 +4,8 @@ import { type Metadata, type Viewport } from "next";
 import { Fraunces, Inter } from "next/font/google";
 
 import { TabBar } from "~/components/tab-bar";
+import { themeValide } from "~/domain/themes";
+import { cookies } from "next/headers";
 
 export const metadata: Metadata = {
   title: "jvcritiqué",
@@ -45,11 +47,27 @@ const inter = Inter({
   variable: "--font-inter",
 });
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  /*
+   * La variante de couleurs vient d'un cookie (FR-20).
+   *
+   * Lire un cookie rend la route dynamique — ce qui ne coûte rien ici : toutes les routes le
+   * sont déjà, puisque D3 impose le recalcul des notes à la lecture. La contrainte de R-D13,
+   * qui voulait garder une page statique, ne s'applique pas à cette application-ci.
+   *
+   * Une valeur inconnue retombe sur le défaut : un cookie est modifiable par son porteur, et
+   * n'importe quelle chaîne atterrirait sinon dans un attribut du document.
+   */
+  const theme = themeValide((await cookies()).get("theme")?.value);
+
   return (
-    <html lang="fr" className={`${fraunces.variable} ${inter.variable}`}>
+    <html
+      lang="fr"
+      data-theme={theme}
+      className={`${fraunces.variable} ${inter.variable}`}
+    >
       <body>
         {/* pb-20 réserve la hauteur de la barre du bas : sans ça, le dernier avis du fil
             reste inaccessible sous la navigation. */}
