@@ -118,7 +118,15 @@ export function ReviewCard({
           </h2>
         ) : null}
         <p className="text-[12px] text-text-muted">
-          par {review.author.name ?? "Quelqu'un"}
+          par{" "}
+          {/* Le nom mène au profil de son auteur : c'est le chemin naturel pour aller voir
+              ce que quelqu'un écrit d'autre, et il n'existait nulle part. */}
+          <Link
+            href={`/profile/${review.author.id}`}
+            className="hover:text-accent-text"
+          >
+            {review.author.name ?? "Quelqu'un"}
+          </Link>
           {playtime ? <> · {playtime}</> : null}
         </p>
       </header>

@@ -7,6 +7,7 @@ import {
   reviewScreenshots,
   reviewUpdateNotes,
   reviews,
+  users,
   weightings,
 } from "../schema";
 
@@ -617,4 +618,22 @@ export async function addUpdateNote(
   await db.insert(reviewUpdateNotes).values({ reviewId, body });
 
   return true;
+}
+
+/**
+ * Un Utilisateur, pour afficher son profil public.
+ *
+ * Rend `null` s'il n'existe pas — la page en fait un 404, ce qui est la seule réponse honnête :
+ * inventer un profil vide laisserait croire que la personne existe et n'a rien écrit.
+ */
+export async function getUserPublic(
+  userId: string,
+): Promise<{ id: string; name: string | null; image: string | null } | null> {
+  const [ligne] = await db
+    .select({ id: users.id, name: users.name, image: users.image })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+
+  return ligne ?? null;
 }
