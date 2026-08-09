@@ -276,6 +276,7 @@ export const reviewsRelations = relations(reviews, ({ one, many }) => ({
   updateNotes: many(reviewUpdateNotes),
   reactions: many(reviewReactions),
   screenshots: many(reviewScreenshots),
+  comments: many(reviewComments),
 }));
 
 // =================================================================================
@@ -392,6 +393,60 @@ export const reviewReactionsRelations = relations(reviewReactions, ({ one }) => 
     references: [reviews.id],
   }),
   user: one(users, { fields: [reviewReactions.userId], references: [users.id] }),
+}));
+
+// =================================================================================
+// Commentaires — hors PRD, ajoutés le 9 août 2026
+// =================================================================================
+
+/**
+ * Un commentaire sous un Avis.
+ *
+ * Le PRD déclarait en non-objectif « pas de commentaires sous les avis d'autrui ». Victor a
+ * d'abord retenu de simples réactions, les a essayées, puis a demandé un vrai fil : « pas
+ * juste cliquer sur un bouton ». Décision prise en connaissance des conséquences — c'est
+ * elle qui crée la surface de modération que la suppression administrateur devra couvrir.
+ *
+ * À distinguer de la Note de mise à jour (FR-10), qui reste réservée à l'auteur de l'Avis :
+ * l'une prolonge l'avis, l'autre y répond. Deux tables, deux règles de propriété.
+ */
+export const reviewComments = createTable(
+  "review_comment",
+  (d) => ({
+    id: d.uuid().primaryKey().defaultRandom(),
+    reviewId: d
+      .uuid()
+      .notNull()
+      .references(() => reviews.id, { onDelete: "cascade" }),
+    authorId: d
+      .varchar({ length: 255 })
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    body: d.text().notNull(),
+    createdAt: d
+      .timestamp({ mode: "date", withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: d.timestamp({ mode: "date", withTimezone: true }),
+  }),
+  (t) => [
+    index("review_comment_review_id_idx").on(t.reviewId),
+    // « Contient au moins un caractère non blanc », et pas `length(trim(...)) > 0` : le
+    // `trim` de PostgreSQL ne retire que les espaces, ni les tabulations ni les sauts de
+    // ligne. Défaut déjà rencontré sur les notes de mise à jour.
+    check("review_comment_body_not_blank", sql`${t.body} ~ '[^[:space:]]'`),
+  ],
+);
+
+export const reviewCommentsRelations = relations(reviewComments, ({ one }) => ({
+  review: one(reviews, {
+    fields: [reviewComments.reviewId],
+    references: [reviews.id],
+  }),
+  author: one(users, {
+    fields: [reviewComments.authorId],
+    references: [users.id],
+  }),
 }));
 
 // =================================================================================

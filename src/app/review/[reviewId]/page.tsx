@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { DomainBars } from "~/components/domain-bars";
+import { Comments, type CommentForDisplay } from "~/components/comments";
 import { Reactions } from "~/components/reactions";
 import { ScreenshotGallery } from "~/components/screenshot-gallery";
 import { ScorePair } from "~/components/score-pair";
@@ -15,6 +16,8 @@ import {
   audienceFor,
   renderForAudience,
 } from "~/domain/spoilers/render-for-audience";
+import { isAdmin } from "~/server/auth/is-admin";
+import { getComments } from "~/server/db/queries/comments";
 import { getReviewById } from "~/server/db/queries/reviews";
 import { getReaderContext } from "~/server/reader";
 
@@ -102,6 +105,29 @@ export default async function ReviewPage({
   });
 
   const readerScore = presentReaderScore(review, reader.name, reader.weighting);
+
+  const admin = await isAdmin(reader.userId);
+
+  /*
+   * Les commentaires sont préparés ICI, côté serveur, et passés en segments déjà filtrés.
+   *
+   * Le composant ne reçoit jamais de texte brut : c'est ce qui rend impossible d'afficher un
+   * spoiler en clair depuis cette surface, sans avoir à y penser (frontière 4). Et l'audience
+   * se calcule par rapport à l'auteur DU COMMENTAIRE, pas à celui de l'avis — c'est lui qui a
+   * écrit le passage masqué.
+   */
+  const comments: CommentForDisplay[] = (await getComments(review.id)).map(
+    (comment) => ({
+      id: comment.id,
+      segments: renderForAudience(
+        comment.body,
+        audienceFor(reader.userId, comment.author.id),
+      ),
+      createdAt: comment.createdAt.toLocaleDateString("fr-FR", dateFormat),
+      authorName: comment.author.name ?? "Quelqu'un",
+      canDelete: admin || reader.userId === comment.author.id,
+    }),
+  );
 
   const playtime: string[] = [];
   if (review.playtimeHours !== null) {
@@ -232,6 +258,13 @@ export default async function ReviewPage({
       />
 
       {isAuthor ? <UpdateNoteForm reviewId={review.id} /> : null}
+
+      <Comments
+        reviewId={review.id}
+        gameTitle={review.game.title}
+        comments={comments}
+        canWrite={reader.userId !== null}
+      />
 
       {review.game.steamUrl ? (
         <a

@@ -65,7 +65,12 @@ export function cheminDe(cle: string, variante: "pleine" | "vignette") {
 export async function stockerImage(
   donnees: Buffer,
 ): Promise<DepotResultat> {
-  await mkdir(RACINE, { recursive: true });
+  try {
+    await mkdir(RACINE, { recursive: true });
+  } catch (erreur) {
+    console.error("[images] dossier de dépôt inaccessible", RACINE, erreur);
+    return { ok: false, raison: "stockage-indisponible" };
+  }
 
   const cle = randomUUID();
   // Nom TEMPORAIRE puis renommage atomique : rien n'est visible tant que le fichier n'est
@@ -153,8 +158,25 @@ export async function stockerImage(
           height: plein.info.height,
         },
       };
-    } catch {
-      return { ok: false, raison: "illisible" };
+    } catch (erreur) {
+      /*
+       * On distingue « je n'ai pas pu décoder » de « je n'ai pas pu écrire ».
+       *
+       * Les deux tombaient auparavant dans « illisible », ce qui a envoyé Victor chercher un
+       * problème dans son fichier alors que le volume était en lecture seule pour
+       * l'application. La trace part dans les journaux serveur : c'est là qu'on veut le
+       * détail, pas à l'écran.
+       */
+      console.error("[images] échec du traitement", erreur);
+
+      const code = (erreur as { code?: string })?.code;
+      const ecritureImpossible =
+        code === "EACCES" || code === "EPERM" || code === "ENOSPC" || code === "EROFS";
+
+      return {
+        ok: false,
+        raison: ecritureImpossible ? "stockage-indisponible" : "illisible",
+      };
     }
   })();
 
