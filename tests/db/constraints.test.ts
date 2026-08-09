@@ -195,20 +195,20 @@ describe("Réaction — une seule par personne et par avis", () => {
   });
 
   it("accepte une réaction", async () => {
-    expect(await violatedConstraint(() => react("tempting"))).toBeNull();
+    expect(await violatedConstraint(() => react("up"))).toBeNull();
   });
 
   it("REFUSE une seconde réaction de la même personne sur le même avis", async () => {
     // La règle est portée par la CLÉ PRIMAIRE, pas par une vérification applicative :
     // changer d'avis remplace la ligne, il n'y a pas d'historique à gérer.
-    expect(await violatedConstraint(() => react("disagree"))).toBe(
+    expect(await violatedConstraint(() => react("down"))).toBe(
       "jvcritique_review_reaction_reviewId_userId_pk",
     );
   });
 
   it("permet de CHANGER sa réaction par un upsert", async () => {
     await sql`insert into jvcritique_review_reaction ("reviewId", "userId", kind)
-              values (${reviewId}, ${otherId}, 'disagree'::jvcritique_reaction_kind)
+              values (${reviewId}, ${otherId}, 'down'::jvcritique_reaction_kind)
               on conflict ("reviewId", "userId") do update set kind = excluded.kind`;
 
     const rows = await sql<{ kind: string }[]>`
@@ -216,7 +216,7 @@ describe("Réaction — une seule par personne et par avis", () => {
       where "reviewId" = ${reviewId} and "userId" = ${otherId}`;
 
     expect(rows).toHaveLength(1);
-    expect(rows[0]?.kind).toBe("disagree");
+    expect(rows[0]?.kind).toBe("down");
   });
 
   it("REFUSE une réaction absente du glossaire", async () => {
