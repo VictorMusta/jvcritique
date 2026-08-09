@@ -3,6 +3,54 @@ import { z } from "zod";
 import { DOMAIN_KEYS } from "~/domain/types";
 
 /**
+ * Traduit l'echec d'une validation en une phrase qui dit QUOI CORRIGER.
+ *
+ * Le commentaire de ce fichier promettait depuis le debut que « l'utilisateur apprend quel
+ * champ ne va pas » — mais l'action jetait le detail et n'affichait que « Il y a un souci
+ * dans ce qui a ete saisi ». Signale par Victor le 9 aout 2026 : son ami Leny, brouillon
+ * retrouve, restait bloque sans savoir quoi changer.
+ *
+ * Les phrases sont ECRITES ICI, jamais reprises de Zod : un message de bibliotheque parle de
+ * types et de chemins d'objet, ce que le glossaire interdit. On rend la PREMIERE erreur et
+ * non la liste : corriger un champ suffit souvent a en resoudre plusieurs, et une liste de
+ * cinq reproches decourage plus qu'elle n'aide.
+ */
+export function expliquerEchec(erreur: z.ZodError): string {
+  const premiere = erreur.issues[0];
+
+  if (premiere === undefined) {
+    return "Il y a un souci dans ce qui a été saisi.";
+  }
+
+  // Une règle croisée porte déjà sa propre phrase, écrite pour être lue.
+  if (premiere.path.length === 0) {
+    return premiere.message;
+  }
+
+  const champ = String(premiere.path[0]);
+
+  const phrases: Record<string, string> = {
+    gameTitle: "Il manque le nom du jeu.",
+    steamUrl:
+      "Le lien Steam n’est pas reconnu. Il doit commencer par « https:// » — ou laisse le champ vide.",
+    playtimeHours:
+      "Le temps de jeu doit être un nombre entier d’heures, sans « h » ni virgule. Écris 20, pas 20,5 ni « 20h ».",
+    overallScoreManual: "La note globale doit être un nombre entier entre 0 et 20.",
+    domainScores:
+      "Une note de domaine ne va pas : chacune est un nombre entier entre 0 et 20, ou « pas évaluable ».",
+    screenshots:
+      "Une capture n’a pas fini de se déposer. Attends qu’elles soient toutes affichées, puis réessaie.",
+    whyRecommend: "Le texte « pourquoi je le recommande » dépasse 5000 caractères.",
+    whatMissed: "Le texte « ce qui m’a manqué » dépasse 5000 caractères.",
+    whatHated: "Le texte « ce que j’ai détesté » dépasse 5000 caractères.",
+    whyNotRecommend:
+      "Le texte « pourquoi je ne le recommande pas » dépasse 5000 caractères.",
+  };
+
+  return phrases[champ] ?? "Il y a un souci dans ce qui a été saisi.";
+}
+
+/**
  * Validation d'un Avis soumis — schémas écrits à la main (D2).
  *
  * Ces règles DOUBLENT volontairement certaines contraintes de la base. Ce n'est pas de la
@@ -60,7 +108,19 @@ export const reviewInputSchema = z
           return null;
         }
         const trimmed = raw.trim();
-        return trimmed.length === 0 ? null : trimmed;
+        if (trimmed.length === 0) {
+          return null;
+        }
+        /*
+         * Une adresse collée depuis Steam arrive souvent SANS protocole —
+         * « store.steampowered.com/app/… ». C'était un refus pur et simple, avec un message
+         * qui ne disait pas pourquoi.
+         *
+         * On complète au lieu de refuser : l'utilisateur a fourni une information juste,
+         * dans une forme que la machine n'attendait pas. `https` et pas `http` — on n'ajoute
+         * pas un lien en clair au nom de la tolérance.
+         */
+        return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
       },
       z.string().url().max(2048).nullable(),
     ),

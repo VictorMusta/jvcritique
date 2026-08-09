@@ -7,7 +7,10 @@ import { auth } from "~/server/auth";
 import { addUpdateNote, updateReview } from "~/server/db/queries/reviews";
 import { supprimerImage } from "~/server/images/store";
 import { fail, guard, ok, type Result } from "~/server/result";
-import { reviewInputSchema } from "~/server/validation/review";
+import {
+  expliquerEchec,
+  reviewInputSchema,
+} from "~/server/validation/review";
 
 /**
  * Modifie un Avis — FR-9.
@@ -34,7 +37,7 @@ export async function updateReviewAction(
     const parsed = reviewInputSchema.safeParse(input);
 
     if (!parsed.success) {
-      return fail("VALIDATION_FAILED");
+      return fail("VALIDATION_FAILED", expliquerEchec(parsed.error));
     }
 
     const data = parsed.data;
@@ -94,7 +97,7 @@ export async function addUpdateNoteAction(
     const parsed = updateNoteSchema.safeParse(body);
 
     if (!parsed.success) {
-      return fail("VALIDATION_FAILED");
+      return fail("VALIDATION_FAILED", expliquerEchec(parsed.error));
     }
 
     // Seul l'auteur de l'avis peut en ajouter (FR-10) : ce n'est pas un fil de commentaires.

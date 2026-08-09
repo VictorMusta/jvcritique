@@ -28,8 +28,18 @@ export function ok<T>(data: T): Result<T> {
  * Échec. Le message est puisé dans le fichier de libellés, jamais écrit sur place — c'est
  * ce qui garantit qu'on peut relire toutes les formulations d'échec d'un seul coup d'œil.
  */
-export function fail<T = never>(code: ErrorCode): Result<T> {
-  return { ok: false, code, message: errorMessages[code] };
+export function fail<T = never>(code: ErrorCode, detail?: string): Result<T> {
+  /*
+   * `detail` REMPLACE le message générique, il ne s'y ajoute pas.
+   *
+   * « Il y a un souci dans ce qui a été saisi. Le lien Steam doit commencer par https:// »
+   * fait lire deux fois la même chose, dont une inutile. Le message générique n'a de raison
+   * d'être que lorsqu'on ne sait rien de plus précis.
+   *
+   * Le détail est TOUJOURS écrit par nous, jamais repris d'une bibliothèque : un message de
+   * Zod parlerait de types et de chemins d'objet, ce que le glossaire interdit explicitement.
+   */
+  return { ok: false, code, message: detail ?? errorMessages[code] };
 }
 
 /**
