@@ -451,8 +451,20 @@ body::after {
   content: "";
   position: fixed;
   inset: 0;
-  z-index: 0;
   pointer-events: none;
+  /*
+   * DERRIÈRE le contenu, et c'est le point délicat.
+   *
+   * Un `::after` est peint APRÈS tous les enfants de son élément : à z-index 0 la texture
+   * passait devant les cartes, et le damier traversait les titres, les barres de notes et
+   * jusqu'au bouton de connexion. Signalé par Victor le 9 août 2026, capture à l'appui.
+   *
+   * `-1` la fait peindre au-dessus du fond de `html` et sous tout le reste. Cela n'est vrai
+   * que si `body` NE PORTE PLUS de couleur de fond : le fond d'un élément se peint au-dessus
+   * de ses descendants négatifs, et masquerait donc la texture. La couleur vit sur `html`
+   * seul — voir la règle `body` plus bas.
+   */
+  z-index: -1;
   background-image: var(--texture);
   background-size: var(--texture-taille, auto);
 }
@@ -584,7 +596,13 @@ body::before {
 }
 
 body {
-  background-color: var(--color-bg);
+  /*
+   * PAS de `background-color` ici : elle est portée par `html`.
+   *
+   * La texture est un `::after` de `body` en z-index négatif. Un fond posé sur `body` la
+   * recouvrirait entièrement — le fond d'un élément est peint au-dessus de ses descendants
+   * négatifs. La couleur sur `html` seul laisse la texture s'intercaler.
+   */
   color: var(--color-text);
   font-family: var(--font-sans);
   font-size: 13px;
