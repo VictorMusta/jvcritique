@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 
 /**
  * Barre de navigation du bas.
@@ -13,7 +14,37 @@ import { usePathname } from "next/navigation";
  *
  * Les libellés sont à 11 px, qui est un PLANCHER et non une cible : ils ne descendent
  * jamais en dessous et doivent survivre à un agrandissement du texte système.
+ *
+ * ELLE DISPARAÎT PENDANT LA SAISIE, et ce n'est pas une préférence d'affichage — c'est la
+ * correction d'un défaut qui rendait le formulaire inutilisable sur téléphone.
+ *
+ * Signalé par Victor le 9 août 2026 : Leny touchait un champ de son avis et se retrouvait
+ * sur l'onglet « Jeux ». Une barre en `position: fixed` est repositionnée par Android quand
+ * le clavier s'ouvre : elle remonte au-dessus de lui, DONC sous le doigt encore posé. Le
+ * relâchement tombe sur l'onglet qui vient de se glisser là. L'élément a bougé entre
+ * l'appui et le clic — d'où l'impression que c'est impossible.
+ *
+ * La masquer supprime la cible au lieu d'essayer de la déplacer proprement, ce qu'aucune
+ * mesure de hauteur de clavier ne fait de façon fiable d'un appareil à l'autre. Et écrire un
+ * avis se passe très bien sans barre de navigation.
  */
+
+/**
+ * Vrai pour les champs qui OUVRENT LE CLAVIER, et pour eux seuls.
+ *
+ * Une case à cocher ou un curseur de note n'en ouvrent pas : masquer la barre à leur contact
+ * la ferait clignoter tout au long de la notation, pour rien.
+ */
+function ouvreLeClavier(cible: EventTarget | null): boolean {
+  if (!(cible instanceof HTMLElement)) return false;
+  if (cible.isContentEditable) return true;
+  if (cible instanceof HTMLTextAreaElement) return true;
+  if (!(cible instanceof HTMLInputElement)) return false;
+
+  return ["text", "search", "url", "number", "email", "tel", "password"].includes(
+    cible.type,
+  );
+}
 
 const items = [
   { href: "/", label: "Fil", glyph: "◈" },
@@ -24,10 +55,44 @@ const items = [
 
 export function TabBar() {
   const pathname = usePathname();
+  const [saisieEnCours, setSaisieEnCours] = useState(false);
+
+  useEffect(() => {
+    const entree = (evenement: FocusEvent) => {
+      if (ouvreLeClavier(evenement.target)) {
+        setSaisieEnCours(true);
+      }
+    };
+
+    const sortie = () => {
+      /*
+       * Reporté d'un tour de boucle : au moment du `focusout`, `document.activeElement` vaut
+       * encore `body`. Sans ce report, passer d'un champ au suivant ferait réapparaître la
+       * barre une fraction de seconde — c'est-à-dire remettre la cible sous le doigt, au pire
+       * moment possible.
+       */
+      setTimeout(() => {
+        setSaisieEnCours(ouvreLeClavier(document.activeElement));
+      }, 0);
+    };
+
+    document.addEventListener("focusin", entree);
+    document.addEventListener("focusout", sortie);
+
+    return () => {
+      document.removeEventListener("focusin", entree);
+      document.removeEventListener("focusout", sortie);
+    };
+  }, []);
 
   return (
     <nav
       aria-label="Navigation principale"
+      /*
+       * `hidden` et pas une simple transparence : un élément seulement invisible reste
+       * cliquable et focalisable, ce qui laisserait le piège exactement en place.
+       */
+      hidden={saisieEnCours}
       className="fixed inset-x-0 bottom-0 z-10 border-t border-border bg-surface"
     >
       <ul className="mx-auto flex max-w-2xl">
