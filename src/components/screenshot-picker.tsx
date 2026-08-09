@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import type { NewScreenshot } from "~/server/db/queries/reviews";
 
@@ -28,8 +28,9 @@ export function ScreenshotPicker({
   const champ = useRef<HTMLInputElement>(null);
   const [enCours, setEnCours] = useState<EnCours[]>([]);
   const [erreurs, setErreurs] = useState<string[]>([]);
+  const [survol, setSurvol] = useState(false);
 
-  async function deposer(fichiers: FileList) {
+  async function deposer(fichiers: readonly File[] | FileList) {
     setErreurs([]);
 
     // Les dépôts sont SÉQUENTIELS et non parallèles : chaque image consomme de la mémoire
@@ -81,6 +82,47 @@ export function ScreenshotPicker({
     }
   }
 
+  /**
+   * Ne garde que les images d'un transfert, et refuse le reste.
+   *
+   * Un presse-papiers contient presque toujours autre chose en même temps — du texte brut,
+   * du HTML, parfois un fichier quelconque. Sans ce tri, coller un morceau de texte
+   * déclencherait un envoi qui échouerait plus loin, avec un message qui parlerait de format
+   * alors que l'utilisateur croyait n'avoir rien fait de spécial.
+   */
+  function imagesDe(transfert: DataTransfer | null): File[] {
+    if (transfert === null) return [];
+
+    return Array.from(transfert.files).filter((f) => f.type.startsWith("image/"));
+  }
+
+  /*
+   * COLLER UNE IMAGE — demandé par Victor pour simplifier le dépôt sur téléphone.
+   *
+   * L'écouteur est posé sur le DOCUMENT, pas sur une zone à viser. Sur téléphone, il n'y a
+   * pas de « clic dans le cadre avant de coller » : on appuie longuement, on choisit
+   * « Coller », et l'évènement part de là où le doigt se trouvait. Exiger un focus préalable
+   * rendrait le geste inatteignable précisément sur l'appareil qu'il s'agit d'aider.
+   *
+   * Il n'y a qu'un sélecteur de captures à l'écran à la fois — le formulaire d'un avis — donc
+   * pas d'ambiguïté sur la destination.
+   */
+  useEffect(() => {
+    const coller = (evenement: ClipboardEvent) => {
+      const fichiers = imagesDe(evenement.clipboardData);
+
+      if (fichiers.length === 0) return;
+
+      // Empêche le navigateur d'insérer aussi l'image dans le champ de texte qui a le focus.
+      evenement.preventDefault();
+      void deposer(fichiers);
+    };
+
+    document.addEventListener("paste", coller);
+    return () => document.removeEventListener("paste", coller);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   function retirer(cle: string) {
     onChange(images.filter((i) => i.storageKey !== cle));
   }
@@ -120,7 +162,27 @@ export function ScreenshotPicker({
         </p>
       ))}
 
-      <div>
+      {/*
+        GLISSER-DÉPOSER, presque gratuit une fois le collage écrit : c'est la même liste de
+        fichiers, extraite du même objet de transfert. Sans intérêt sur téléphone, mais c'est
+        le geste naturel sur ordinateur, où l'on a la capture sous la souris.
+      */}
+      <div
+        onDragOver={(e) => {
+          e.preventDefault();
+          setSurvol(true);
+        }}
+        onDragLeave={() => setSurvol(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setSurvol(false);
+          const fichiers = imagesDe(e.dataTransfer);
+          if (fichiers.length > 0) void deposer(fichiers);
+        }}
+        className={`rounded-[8px] border border-dashed p-s4 ${
+          survol ? "border-accent bg-surface-raised" : "border-border"
+        }`}
+      >
         <input
           ref={champ}
           id="captures"
@@ -134,6 +196,12 @@ export function ScreenshotPicker({
           }}
           className="text-[12px] text-text-muted file:mr-s4 file:rounded-[8px] file:border file:border-border file:bg-surface-raised file:px-s4 file:py-s2 file:text-[12px] file:text-text"
         />
+
+        <p className="mt-s3 text-[11px] italic leading-snug text-text-muted">
+          Tu peux aussi <strong className="font-semibold not-italic">coller</strong> une image
+          — appui long puis « Coller » sur téléphone, Ctrl+V sur ordinateur — ou la faire
+          glisser ici.
+        </p>
       </div>
 
       <p className="text-[11px] italic text-text-muted">
