@@ -109,6 +109,24 @@ export default async function ReviewPage({
   const admin = await isAdmin(reader.userId);
 
   /*
+   * DÉCLARÉ AVANT le premier usage, et ce n'est pas une préférence de rangement.
+   *
+   * Ce format vivait sous la préparation des commentaires, alors qu'une fonction de rappel
+   * s'en servait déjà au-dessus. Un `const` est en zone morte tant que sa ligne n'a pas été
+   * exécutée : la page tombait en 500 dès qu'un avis recevait son PREMIER commentaire — avec
+   * zéro commentaire, la fonction de rappel ne s'exécute jamais et la faute reste invisible.
+   *
+   * Ni TypeScript ni les tests ne pouvaient l'attraper : le compilateur ne refuse un usage
+   * anticipé que s'il est direct, jamais à l'intérieur d'une fermeture, dont il ignore la
+   * date d'exécution. Seule une page rendue avec des données réelles le montre.
+   */
+  const dateFormat: Intl.DateTimeFormatOptions = {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  };
+
+  /*
    * Les commentaires sont préparés ICI, côté serveur, et passés en segments déjà filtrés.
    *
    * Le composant ne reçoit jamais de texte brut : c'est ce qui rend impossible d'afficher un
@@ -136,12 +154,6 @@ export default async function ReviewPage({
   if (review.completed) {
     playtime.push("terminé");
   }
-
-  const dateFormat: Intl.DateTimeFormatOptions = {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  };
 
   return (
     <main className="flex flex-col gap-s5 p-s5">
