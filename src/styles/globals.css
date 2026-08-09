@@ -84,6 +84,21 @@ input[type="range"].domain-slider {
   height: 48px;
   background: transparent;
   cursor: pointer;
+
+  /*
+   * LE geste vertical appartient à la page, pas au curseur.
+   *
+   * Sans cette ligne, faire défiler la page au pouce en partant d'un curseur déplaçait la
+   * note au lieu de faire défiler — et comme la zone de contact fait 48 px de haut sur sept
+   * curseurs, une bonne moitié du formulaire devenait impossible à parcourir.
+   *
+   * C'est la rencontre de deux règles justes : `DESIGN.md` impose ces 48 px pour qu'un rail
+   * de 8 px reste touchable, et le navigateur donne par défaut tous les gestes à l'élément
+   * touché. `pan-y` tranche sans sacrifier ni l'une ni l'autre : le navigateur garde les
+   * gestes VERTICAUX pour le défilement, le curseur ne reçoit que les gestes HORIZONTAUX —
+   * les seuls qui aient un sens pour lui, puisqu'il est horizontal.
+   */
+  touch-action: pan-y;
 }
 
 input[type="range"].domain-slider::-webkit-slider-runnable-track {
