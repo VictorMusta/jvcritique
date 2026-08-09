@@ -64,7 +64,7 @@ export async function updateGameAction(
     if (outcome === "duplicate") {
       // Un autre jeu porte déjà ce titre, à la casse près. Le dire précisément évite que
       // l'administrateur croie à une panne.
-      return fail("ALREADY_EXISTS");
+      return fail("GAME_TITLE_TAKEN");
     }
 
     // Le titre apparaît partout où l'avis apparaît : toutes les surfaces sont concernées.

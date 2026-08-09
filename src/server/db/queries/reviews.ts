@@ -293,6 +293,17 @@ export type NewReviewDomainScore = {
  * de domaine — donc sans note relue possible, et sans note du tout si l'auteur avait choisi
  * le mode calculé. Un déchet silencieux, visible seulement à la lecture.
  */
+/**
+ * Résultat d'une création d'Avis.
+ *
+ * Une union plutôt qu'un identifiant nu : « tu as déjà un avis sur ce jeu » n'est pas une
+ * panne, c'est une situation normale qui mérite son propre message — et un lien vers l'avis
+ * existant plutôt qu'une invitation à recommencer.
+ */
+export type CreateReviewOutcome =
+  | { status: "created"; reviewId: string }
+  | { status: "alreadyReviewed"; reviewId: string };
+
 export async function createReview(input: {
   gameId: string;
   authorId: string;
@@ -305,8 +316,9 @@ export async function createReview(input: {
   whatHated: string | null;
   whyNotRecommend: string | null;
   domainScores: NewReviewDomainScore[];
-}): Promise<string> {
-  return db.transaction(async (tx) => {
+}): Promise<CreateReviewOutcome> {
+  try {
+    return await db.transaction(async (tx) => {
     const [created] = await tx
       .insert(reviews)
       .values({
@@ -338,8 +350,35 @@ export async function createReview(input: {
       );
     }
 
-    return created.id;
-  });
+      return { status: "created" as const, reviewId: created.id };
+    });
+  } catch (error) {
+    /*
+     * 23505 sur `review_author_game_idx` : cette personne a DÉJÀ un avis sur ce jeu.
+     *
+     * Ce n'est pas une panne — c'est la règle « une mise à jour est une modification, jamais
+     * un second avis » qui s'applique. Laisser l'exception remonter donnerait « ça a cassé de
+     * notre côté », alors qu'il suffit de renvoyer l'auteur vers son avis existant.
+     */
+    if ((error as { code?: string })?.code === "23505") {
+      const existing = await db
+        .select({ id: reviews.id })
+        .from(reviews)
+        .where(
+          and(
+            eq(reviews.authorId, input.authorId),
+            eq(reviews.gameId, input.gameId),
+          ),
+        )
+        .limit(1);
+
+      if (existing[0]) {
+        return { status: "alreadyReviewed" as const, reviewId: existing[0].id };
+      }
+    }
+
+    throw error;
+  }
 }
 
 /**

@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { SignInButton } from "~/components/auth-buttons";
 import { ReviewForm } from "~/components/review-form";
+import { listGamesForPicker } from "~/server/db/queries/games";
 import { getReaderContext } from "~/server/reader";
 
 export const dynamic = "force-dynamic";
@@ -46,6 +47,7 @@ export default async function PublishPage() {
       <ReviewForm
         authorName={reader.name ?? "Toi"}
         authorWeighting={reader.weighting}
+        existingGames={await listGamesForPicker()}
       />
     </main>
   );

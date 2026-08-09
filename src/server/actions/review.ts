@@ -43,7 +43,7 @@ export async function createReviewAction(
     // pas, et retrouvé à la casse près s'il existe.
     const gameId = await findOrCreateGame(data.gameTitle, data.steamUrl);
 
-    const reviewId = await createReview({
+    const outcome = await createReview({
       gameId,
       authorId,
       isPrivate: data.isPrivate,
@@ -57,6 +57,17 @@ export async function createReviewAction(
       domainScores: data.domainScores,
     });
 
+    /*
+     * Un avis existait déjà pour cette personne sur ce jeu.
+     *
+     * Ce n'est pas une panne : c'est la règle « une mise à jour est une modification, jamais
+     * un second avis ». On renvoie l'identifiant de l'avis EXISTANT, ce qui permet à
+     * l'interface d'y emmener l'auteur au lieu de lui demander de recommencer.
+     */
+    if (outcome.status === "alreadyReviewed") {
+      return fail("ALREADY_REVIEWED");
+    }
+
     // Invalidation déclarée route par route (INV-2, R-D3). Le cache de route de Next est
     // actif par défaut : sans ces appels, le nouvel avis n'apparaîtrait pas dans le fil.
     revalidatePath("/");
@@ -64,6 +75,6 @@ export async function createReviewAction(
     revalidatePath(`/game/${gameId}`);
     revalidatePath("/profile");
 
-    return ok({ reviewId });
+    return ok({ reviewId: outcome.reviewId });
   });
 }
