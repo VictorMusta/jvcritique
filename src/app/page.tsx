@@ -58,7 +58,7 @@ export default async function FeedPage() {
           </p>
           <Link
             href="/publish"
-            className="self-center rounded-[8px] border border-accent bg-accent px-s5 py-[13px] font-semibold text-bg"
+            className="self-center rounded-[8px] border border-accent bg-accent px-s5 py-[13px] font-semibold text-on-accent"
           >
             Écrire un avis
           </Link>

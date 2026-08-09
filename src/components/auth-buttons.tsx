@@ -18,7 +18,7 @@ export function SignInButton({ label = "Se connecter avec Discord" }) {
     >
       <button
         type="submit"
-        className="rounded-[8px] border border-accent bg-accent px-s5 py-[13px] font-semibold text-bg"
+        className="rounded-[8px] border border-accent bg-accent px-s5 py-[13px] font-semibold text-on-accent"
       >
         {label}
       </button>

@@ -533,7 +533,7 @@ export function ReviewForm({
           type="button"
           onClick={submit}
           disabled={pending || gameTitle.trim() === "" || !hasAnyScore}
-          className="rounded-[8px] border border-accent bg-accent px-s5 py-[13px] font-semibold text-bg disabled:opacity-50"
+          className="rounded-[8px] border border-accent bg-accent px-s5 py-[13px] font-semibold text-on-accent disabled:opacity-50"
         >
           {pending
             ? editing
