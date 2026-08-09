@@ -61,6 +61,33 @@ export function TabBar({
   readonly nonLues?: number;
 }) {
   const pathname = usePathname();
+
+  /*
+   * LA PASTILLE S'ÉTEINT DÈS QU'ON ARRIVE SUR L'ACTIVITÉ, sans attendre le serveur.
+   *
+   * Signalé par Victor : le compte restait affiché après avoir cliqué. Les notifications
+   * étaient pourtant bien marquées lues en base — mais le compte est calculé dans la MISE EN
+   * PAGE RACINE, qui ne se re-rend pas lors d'une navigation côté client. La pastille gardait
+   * donc sa valeur jusqu'au prochain chargement complet.
+   *
+   * Corrigé ici plutôt que par un rafraîchissement forcé : celui-ci re-rendrait aussi la
+   * liste, et les lignes perdraient leur cadre « nouveau » sous les yeux de celui qui vient
+   * de les ouvrir. La pastille compte ce qui n'a pas été VU ; arriver sur la page, c'est
+   * voir.
+   *
+   * L'état reste vrai pour le reste de la session, ce qui est correct : le prochain
+   * chargement complet reprendra le compte réel, qui vaudra zéro.
+   */
+  const [activiteVue, setActiviteVue] = useState(pathname === "/activite");
+
+  // Ajusté PENDANT le rendu et non dans un effet : c'est un état dérivé d'une propriété, le
+  // cas que React prévoit explicitement. Dans un effet, la pastille resterait allumée le
+  // temps d'un rendu de plus — visible, et sur l'écran même qui est censé l'éteindre.
+  if (pathname === "/activite" && !activiteVue) {
+    setActiviteVue(true);
+  }
+
+  const aSignaler = activiteVue ? 0 : nonLues;
   const [saisieEnCours, setSaisieEnCours] = useState(false);
 
   useEffect(() => {
@@ -125,9 +152,9 @@ export function TabBar({
                     « quelque chose ». Au-delà de neuf, le compte exact n'aide plus personne
                     et la pastille déborderait de l'icône.
                   */}
-                  {href === "/activite" && nonLues > 0 ? (
+                  {href === "/activite" && aSignaler > 0 ? (
                     <span className="tnum absolute -right-[9px] -top-[5px] min-w-[15px] rounded-full bg-accent px-[3px] text-center text-[9px] font-bold leading-[15px] text-on-accent">
-                      {nonLues > 9 ? "9+" : nonLues}
+                      {aSignaler > 9 ? "9+" : aSignaler}
                     </span>
                   ) : null}
                 </span>
@@ -135,10 +162,10 @@ export function TabBar({
                   {label}
                   {/* Le compte est répété pour qui écoute la page : la pastille est
                       décorative, et un lecteur d'écran ne l'annoncerait jamais. */}
-                  {href === "/activite" && nonLues > 0 ? (
+                  {href === "/activite" && aSignaler > 0 ? (
                     <span className="sr-only">
                       {" "}
-                      — {nonLues} {nonLues === 1 ? "nouveauté" : "nouveautés"}
+                      — {aSignaler} {aSignaler === 1 ? "nouveauté" : "nouveautés"}
                     </span>
                   ) : null}
                 </span>
