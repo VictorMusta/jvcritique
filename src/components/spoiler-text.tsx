@@ -132,14 +132,24 @@ function MaskedPassage({
        * étiquette, un lecteur d'écran annoncerait un bouton vide.
        */
       aria-label={`Passage masqué — spoiler sur ${gameTitle}. Activer pour révéler.`}
-      className="spoiler-mask cursor-pointer align-baseline px-[3px]"
-    >
-      {/*
-        Des pavés, pas le texte. Leur nombre suit la longueur du passage — comme Discord,
-        qui laisse deviner l'ampleur sans rien divulguer.
-      */}
-      <span aria-hidden>{"█".repeat(Math.min(text.length, 40))}</span>
-    </button>
+      className="spoiler-mask cursor-pointer align-middle"
+      /*
+       * UNE BARRE DESSINÉE, pas des caractères.
+       *
+       * La version précédente répétait le pavé plein `█`, absent du sous-ensemble latin
+       * d'Inter : il ne se dessinait pas, et le masque apparaissait comme un grand
+       * rectangle vide. Défaut invisible à mes vérifications, qui portaient sur les octets
+       * servis — il fallait regarder l'écran.
+       *
+       * Une largeur en `ch` proportionnelle au passage donne la même indication d'ampleur
+       * que Discord, sans dépendre d'aucune police ni contenir le moindre caractère.
+       */
+      style={{
+        display: "inline-block",
+        width: `${Math.min(Math.max(text.length, 3), 24)}ch`,
+        height: "1em",
+      }}
+    />
   );
 }
 

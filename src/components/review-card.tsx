@@ -72,10 +72,19 @@ export function ReviewCard({
   const playtime = playtimeLabel(review.playtimeHours, review.completed);
 
   return (
-    <article className="flex flex-col gap-s4 rounded-[10px] border border-border bg-surface p-s4">
+    /*
+     * PAS DE BORDURE, et de l'air.
+     *
+     * Sept conteneurs du produit portaient exactement le même cadre : quand tout a le même
+     * poids visuel, plus rien n'a d'importance et l'écran lit comme un gabarit. Depuis que
+     * les palettes sont teintées, l'écart entre `surface` et `bg` suffit à détacher la carte
+     * — un trait en plus ne ferait que l'enfermer.
+     */
+    <article className="flex flex-col gap-s4 rounded-md bg-surface p-s5">
       <header className="flex flex-col gap-s1">
         {showGameTitle ? (
-          <h2 className="font-display text-[15px] font-semibold leading-tight">
+          /* Le nom du jeu en grand : c'est ce qu'on cherche en parcourant un fil. */
+          <h2 className="font-display text-[21px] font-semibold leading-tight">
             <Link href={`/game/${review.game.id}`} className="hover:text-accent-text">
               {review.game.title}
             </Link>
@@ -146,7 +155,7 @@ export function ReviewCard({
 
       <Link
         href={`/review/${review.id}`}
-        className="self-start text-[12px] font-semibold text-accent-text"
+        className="self-start text-[12px] font-semibold text-accent-text transition-opacity hover:opacity-70"
       >
         Lire l&apos;avis →
       </Link>
