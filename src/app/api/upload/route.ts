@@ -24,6 +24,10 @@ const messages: Record<string, string> = {
   "format-refuse": "Formats acceptés : JPEG, PNG et WebP.",
   "trop-de-pixels": "Cette image est bien trop grande pour être traitée.",
   illisible: "Cette image n'a pas pu être lue.",
+  // Ne PAS dire « ton image est en cause » quand c'est le serveur : l'utilisateur
+  // recommencerait indéfiniment avec d'autres fichiers.
+  "stockage-indisponible":
+    "Le serveur n'a pas pu enregistrer l'image. Ça ne vient pas de ton fichier.",
 };
 
 export async function POST(request: NextRequest) {

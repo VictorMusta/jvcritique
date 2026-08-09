@@ -31,7 +31,17 @@ export type RefusDepot =
   | "trop-gros"
   | "format-refuse"
   | "trop-de-pixels"
-  | "illisible";
+  /** Le fichier reçu n'est pas une image exploitable. */
+  | "illisible"
+  /**
+   * L'image était bonne, c'est le stockage qui a échoué.
+   *
+   * Distingué d'« illisible » après un vrai incident : un volume Docker appartenant à root
+   * empêchait l'écriture, et l'utilisateur lisait « cette image n'a pas pu être lue » — un
+   * message qui l'envoyait chercher un problème dans son fichier alors qu'il était sur le
+   * serveur. Une panne qui accuse l'utilisateur est pire qu'une panne muette.
+   */
+  | "stockage-indisponible";
 
 /**
  * Contrôle la taille annoncée AVANT de lire le flux.

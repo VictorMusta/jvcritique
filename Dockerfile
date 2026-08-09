@@ -62,6 +62,18 @@ COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
+# Point de montage des captures, créé AVANT le changement d'utilisateur et déjà à la bonne
+# appartenance.
+#
+# Docker initialise un volume NEUF à partir du contenu et des droits du chemin correspondant
+# dans l'image. Sans ce répertoire, le volume naît appartenant à root, et l'application —
+# qui tourne en `nextjs` — ne peut rien y écrire : le dépôt échouait avec un message
+# d'illisibilité qui n'avait rien à voir avec l'image.
+#
+# Attention : cette initialisation n'a lieu qu'à la CRÉATION du volume. Un volume déjà
+# existant garde ses droits, et doit être supprimé une fois pour que la correction prenne.
+RUN mkdir -p /app/uploads && chown nextjs:nodejs /app/uploads
+
 USER nextjs
 EXPOSE 3000
 ENV PORT=3000 HOSTNAME=0.0.0.0
