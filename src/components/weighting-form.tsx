@@ -46,7 +46,7 @@ export function WeightingForm({ initial }: { readonly initial: Weighting }) {
   }
 
   return (
-    <section className="flex flex-col gap-s5">
+    <section className="panneau flex flex-col gap-s5 p-s5">
       <div className="flex flex-col gap-s2">
         <h2 className="font-display text-[15px] font-semibold">Tes critères</h2>
         {/* Mention PORTEUSE : elle énonce une règle de calcul, donc pleine couleur et

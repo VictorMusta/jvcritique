@@ -23,7 +23,9 @@ export default async function PublishPage() {
   }
 
   return (
-    <main className="flex flex-col gap-s6 p-s5">
+    <main className="flex flex-col gap-s4 p-s3">
+      {/* Un formulaire est presque entièrement du texte : il lui faut une surface opaque. */}
+      <div className="panneau flex flex-col gap-s6 p-s5">
       <h1 className="font-display text-[25px] font-semibold leading-tight">
         Écrire un avis
       </h1>
@@ -49,6 +51,7 @@ export default async function PublishPage() {
         authorWeighting={reader.weighting}
         existingGames={await listGamesForPicker()}
       />
+      </div>
     </main>
   );
 }

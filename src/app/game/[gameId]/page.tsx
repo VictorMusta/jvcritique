@@ -29,8 +29,8 @@ export default async function GamePage({
   const admin = await isAdmin(reader.userId);
 
   return (
-    <main className="flex flex-col gap-s5 p-s5">
-      <header className="flex flex-col gap-s2">
+    <main className="flex flex-col gap-s4 p-s3">
+      <header className="panneau flex flex-col gap-s2 p-s5">
         <h1 className="font-display text-[25px] font-semibold leading-tight">
           {game.title}
         </h1>

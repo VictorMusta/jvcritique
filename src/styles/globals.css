@@ -469,6 +469,24 @@ body::after {
   background-size: var(--texture-taille, auto);
 }
 
+
+/*
+ * PANNEAU — la surface opaque sous tout bloc de texte.
+ *
+ * Regression signalee par Victor le 9 aout 2026, captures a l'appui : sur la page d'un avis
+ * et sur le profil, le texte etait pose DIRECTEMENT sur le damier. Un rapport de contraste se
+ * mesure contre le point le plus clair ET le plus sombre du fond ; un motif n'en a pas un
+ * seul, donc la mesure ne veut plus rien dire — et a l'oeil, le texte devient penible.
+ *
+ * Le fil, lui, n'avait pas le probleme : ses cartes etaient deja opaques. C'est le modele
+ * qu'on generalise, et pas un panneau unique sur toute la page — la texture reste visible
+ * ENTRE les blocs, ce qui etait tout l'interet de la poser.
+ */
+.panneau {
+  background-color: var(--color-surface);
+  border-radius: 12px;
+}
+
 /*
  * COINS ORNES — « des ptits visuels dans les coins des divs ».
  *

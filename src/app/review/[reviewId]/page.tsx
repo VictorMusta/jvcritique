@@ -156,7 +156,10 @@ export default async function ReviewPage({
   }
 
   return (
-    <main className="flex flex-col gap-s5 p-s5">
+    <main className="flex flex-col gap-s4 p-s3">
+      {/* Tout le corps de l'avis sur UNE surface opaque : sans elle, le titre, les notes
+          et les textes se lisaient sur le damier. */}
+      <div className="panneau orne relative flex flex-col gap-s5 p-s5">
       <header className="flex flex-col gap-s2">
         <h1 className="font-display text-[25px] font-semibold leading-tight">
           <Link href={`/game/${review.game.id}`} className="hover:text-accent-text">
@@ -198,7 +201,7 @@ export default async function ReviewPage({
         </p>
       )}
 
-      <section className="flex flex-col gap-s3 rounded-[10px] border border-border bg-surface p-s4">
+      <section className="flex flex-col gap-s3 rounded-[10px] border border-border bg-surface-raised p-s4">
         <h2 className="text-[9px] font-bold uppercase tracking-[0.06em] text-text-muted">
           Par domaine
         </h2>
@@ -231,7 +234,7 @@ export default async function ReviewPage({
           {review.updateNotes.map((note) => (
             <article
               key={note.id}
-              className="flex flex-col gap-s2 rounded-[10px] border border-border bg-surface p-s4"
+              className="flex flex-col gap-s2 rounded-[10px] border border-border bg-surface-raised p-s4"
             >
               <time
                 dateTime={note.createdAt.toISOString()}
@@ -270,7 +273,10 @@ export default async function ReviewPage({
       />
 
       {isAuthor ? <UpdateNoteForm reviewId={review.id} /> : null}
+      </div>
 
+      {/* Les commentaires portent leur PROPRE panneau : la texture reparaît entre les deux,
+          et la discussion se lit comme un bloc distinct de l'avis. */}
       <Comments
         reviewId={review.id}
         gameTitle={review.game.title}

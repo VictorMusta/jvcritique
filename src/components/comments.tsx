@@ -66,7 +66,7 @@ export function Comments({
   }
 
   return (
-    <section className="flex flex-col gap-s4">
+    <section className="panneau flex flex-col gap-s4 p-s5">
       <h2 className="text-[9px] font-bold uppercase tracking-[0.06em] text-text-muted">
         {comments.length === 0
           ? "Commentaires"
@@ -78,7 +78,7 @@ export function Comments({
       {comments.map((comment) => (
         <article
           key={comment.id}
-          className="flex flex-col gap-s2 rounded-[10px] border border-border bg-surface p-s4"
+          className="flex flex-col gap-s2 rounded-[10px] border border-border bg-surface-raised p-s4"
         >
           <div className="flex items-baseline justify-between gap-s4">
             <p className="text-[12px] text-text-muted">
