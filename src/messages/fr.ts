@@ -85,9 +85,8 @@ export const bearingHints = {
  * qui mesure la raison d'être du produit.
  */
 export const reactionLabels = {
-  tempting: "Ça me tente",
-  sameHere: "Moi aussi",
-  disagree: "Pas d'accord",
+  up: "Super avis",
+  down: "Avis désastreux",
 } as const;
 
 /** Mentions de simple confort — atténuées, elles ne changent aucun calcul. */

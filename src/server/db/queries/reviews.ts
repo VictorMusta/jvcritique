@@ -44,7 +44,7 @@ function toDomainScores(rows: DomainScoreRow[]): DomainScores {
 
 export type UpdateNote = { id: string; body: string; createdAt: Date };
 
-export type ReactionKind = "tempting" | "sameHere" | "disagree";
+export type ReactionKind = "up" | "down";
 
 /**
  * Une réaction, avec le NOM de qui l'a posée.

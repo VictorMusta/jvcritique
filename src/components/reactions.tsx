@@ -4,29 +4,58 @@ import { useState, useTransition } from "react";
 
 import { reactionLabels } from "~/messages/fr";
 import { reactAction } from "~/server/actions/reaction";
+import { todoAction } from "~/server/actions/todo";
 import type { Reaction, ReactionKind } from "~/server/db/queries/reviews";
 
-const KINDS: ReactionKind[] = ["tempting", "sameHere", "disagree"];
+const KINDS: ReactionKind[] = ["up", "down"];
 
 /**
- * Réactions à un avis — trois boutons, une par personne.
+ * Réactions à un avis, et liste de jeux à faire.
  *
- * Ce n'est PAS un fil de commentaires, et le PRD le déclare en non-objectif. On garde le
- * signal social — « ton avis m'a donné envie » — sans créer de surface de modération, sans
- * appeler de notifications, et sans déplacer le produit vers la discussion.
+ * TROIS BOUTONS QUI NE FONT PLUS LA MÊME CHOSE, et c'est le point délicat de cet écran.
+ * Les deux pouces jugent l'AVIS, s'excluent l'un l'autre, et sont visibles de son auteur.
+ * « À faire » porte sur le JEU, est cumulable avec un pouce, et n'est visible de personne
+ * d'autre. Ils se ressemblent parce qu'ils sont côte à côte, pas parce qu'ils sont de même
+ * nature — d'où le séparateur qui les éloigne.
+ *
+ * Refonte demandée par Victor le 10 août 2026 : « ça me tente » était une intention
+ * personnelle déguisée en réaction.
  */
 export function Reactions({
   reviewId,
+  gameId,
   reactions,
   viewerId,
   isAuthor,
+  dejaDansLaListe = false,
 }: {
   readonly reviewId: string;
+  /** La liste porte sur le JEU, pas sur l'avis qui a donné envie d'y jouer. */
+  readonly gameId: string;
   readonly reactions: readonly Reaction[];
   readonly viewerId: string | null;
   readonly isAuthor: boolean;
+  readonly dejaDansLaListe?: boolean;
 }) {
   const [pending, startTransition] = useTransition();
+  const [dansLaListe, setDansLaListe] = useState(dejaDansLaListe);
+
+  function basculerListe() {
+    const avant = dansLaListe;
+    setDansLaListe(!avant);
+
+    startTransition(async () => {
+      const result = await todoAction(gameId);
+
+      // Comme pour les réactions : en cas d'échec on revient en arrière, sinon le bouton
+      // resterait allumé sur un ajout qui n'a pas eu lieu.
+      if (result.ok) {
+        setDansLaListe(result.data.dansLaListe);
+      } else {
+        setDansLaListe(avant);
+      }
+    });
+  }
 
   // L'état local rend le clic instantané. Le serveur reste la source de vérité : au
   // rechargement, c'est lui qui gagne. Sans ça, chaque clic attendrait un aller-retour.
@@ -53,6 +82,36 @@ export function Reactions({
 
   return (
     <section className="flex flex-col gap-s3">
+      {viewerId !== null ? (
+        <div className="flex flex-wrap items-center gap-s2">
+          {/*
+            « À FAIRE » RESTE OFFERT À L'AUTEUR, contrairement aux pouces. Se juger soi-même
+            n'a pas de sens ; vouloir rejouer à un jeu dont on a parlé en a parfaitement.
+          */}
+          <button
+            type="button"
+            onClick={basculerListe}
+            disabled={pending}
+            aria-pressed={dansLaListe}
+            className={`flex items-center gap-s2 rounded-full border px-s4 py-s2 text-[12px] transition-colors disabled:opacity-60 ${
+              dansLaListe
+                ? "border-accent bg-accent/15 font-semibold text-accent-text"
+                : "border-border text-text-muted"
+            }`}
+          >
+            <span aria-hidden>{dansLaListe ? "✓" : "+"}</span>
+            {dansLaListe ? "Dans ma liste" : "Ajouter à ma liste"}
+          </button>
+
+          {/* Séparateur : ce qui suit juge l'avis, ce qui précède ne regarde que soi. */}
+          {!isAuthor ? (
+            <span aria-hidden className="text-text-muted opacity-50">
+              ·
+            </span>
+          ) : null}
+        </div>
+      ) : null}
+
       {viewerId !== null && !isAuthor ? (
         <div className="flex flex-wrap gap-s2">
           {KINDS.map((kind) => {
