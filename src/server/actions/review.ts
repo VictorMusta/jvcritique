@@ -8,7 +8,10 @@ import { createReview } from "~/server/db/queries/reviews";
 import { markAnnounced } from "~/server/db/queries/announcements";
 import { annoncerAvis } from "~/server/discord";
 import { fail, guard, ok, type Result } from "~/server/result";
-import { reviewInputSchema } from "~/server/validation/review";
+import {
+  expliquerEchec,
+  reviewInputSchema,
+} from "~/server/validation/review";
 
 /**
  * Publie un Avis — FR-3, FR-4, FR-5, FR-11, FR-22.
@@ -36,7 +39,7 @@ export async function createReviewAction(
     const parsed = reviewInputSchema.safeParse(input);
 
     if (!parsed.success) {
-      return fail("VALIDATION_FAILED");
+      return fail("VALIDATION_FAILED", expliquerEchec(parsed.error));
     }
 
     const data = parsed.data;

@@ -92,7 +92,7 @@ type BrouillonAvis = {
   steamUrl: string;
   entries: Record<DomainKey, DomainEntry>;
   manualMode: boolean;
-  manualScore: number;
+  manualScore: string;
   playtime: string;
   completed: boolean;
   screenshots: NewScreenshot[];
@@ -136,7 +136,23 @@ export function ReviewForm({
   const [manualMode, setManualMode] = useState(
     initial?.overallScoreManual !== null && initial?.overallScoreManual !== undefined,
   );
-  const [manualScore, setManualScore] = useState(initial?.overallScoreManual ?? 14);
+  /*
+   * Conservée comme CHAÎNE, et pas comme nombre.
+   *
+   * C'est ce que l'utilisateur tape, et c'est la seule représentation qui survit à une
+   * frappe intermédiaire. Un `Number()` posé sur chaque touche rendait `NaN` dès qu'une
+   * virgule apparaissait — « 16,5 ». Le `NaN` entrait dans l'état, `JSON.stringify` le
+   * changeait en `null` dans le brouillon, et au retour la note personnalisée était vide
+   * alors que la case restait cochée. L'avis était refusé pour « aucune note », avec un
+   * message générique qui ne désignait rien.
+   *
+   * Signalé par Victor le 9 août 2026, après que son ami Leny soit resté bloqué dessus.
+   */
+  const [manualScore, setManualScore] = useState(
+    initial?.overallScoreManual !== null && initial?.overallScoreManual !== undefined
+      ? String(initial.overallScoreManual)
+      : "14",
+  );
   const [playtime, setPlaytime] = useState(
     initial?.playtimeHours !== null && initial?.playtimeHours !== undefined
       ? String(initial.playtimeHours)
@@ -207,7 +223,15 @@ export function ReviewForm({
       setSteamUrl(repris.steamUrl);
       setEntries(repris.entries);
       setManualMode(repris.manualMode);
-      setManualScore(repris.manualScore);
+      // Les brouillons écrits avant ce correctif contiennent un nombre, ou `null` là où un
+      // `NaN` a été sérialisé. On repart d'une valeur saine plutôt que de la propager.
+      setManualScore(
+        typeof repris.manualScore === "string"
+          ? repris.manualScore
+          : typeof repris.manualScore === "number"
+            ? String(repris.manualScore)
+            : "14",
+      );
       setPlaytime(repris.playtime);
       setCompleted(repris.completed);
       setScreenshots(repris.screenshots);
@@ -261,7 +285,11 @@ export function ReviewForm({
     setManualMode(
       initial?.overallScoreManual !== null && initial?.overallScoreManual !== undefined,
     );
-    setManualScore(initial?.overallScoreManual ?? 14);
+    setManualScore(
+      initial?.overallScoreManual !== null && initial?.overallScoreManual !== undefined
+        ? String(initial.overallScoreManual)
+        : "14",
+    );
     setPlaytime(
       initial?.playtimeHours !== null && initial?.playtimeHours !== undefined
         ? String(initial.playtimeHours)
@@ -341,10 +369,29 @@ export function ReviewForm({
     setError(null);
     setErrorRechargeable(false);
 
+    /*
+     * Contrôlé ICI, avant tout aller-retour.
+     *
+     * Le serveur sait désormais nommer le champ fautif, mais il ne serait même pas atteint :
+     * une note illisible part comme « pas de note », et l'avis serait refusé pour une raison
+     * qui n'est pas la vraie. Mieux vaut le dire tout de suite, sans attendre le réseau.
+     */
+    const noteSaisie = manualMode ? Number(manualScore.replace(",", ".")) : null;
+
+    if (
+      manualMode &&
+      (!Number.isInteger(noteSaisie) || noteSaisie! < 0 || noteSaisie! > 20)
+    ) {
+      setError(
+        "La note globale doit être un nombre entier entre 0 et 20 — 16, pas 16,5.",
+      );
+      return;
+    }
+
     const payload = {
       gameTitle,
       steamUrl,
-      overallScoreManual: manualMode ? manualScore : null,
+      overallScoreManual: noteSaisie,
       isPrivate,
       playtimeHours: playtime.trim() === "" ? null : Number(playtime),
       completed,
@@ -614,8 +661,9 @@ export function ReviewForm({
               type="number"
               min={0}
               max={20}
+              step={1}
               value={manualScore}
-              onChange={(e) => setManualScore(Number(e.target.value))}
+              onChange={(e) => setManualScore(e.target.value)}
               aria-label="Note globale sur 20"
               className="tnum w-[80px] rounded-[8px] border border-border bg-surface-raised px-s4 py-s3 text-[16px] font-bold"
             />
