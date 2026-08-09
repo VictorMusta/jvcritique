@@ -25,7 +25,11 @@ export default async function GamesPage() {
            * champs dont il n'a que faire, et qu'on oublierait de retirer plus tard.
            */
           <GamesSearch
-            games={games.map((game) => ({ id: game.id, title: game.title }))}
+            games={games.map((game) => ({
+              id: game.id,
+              title: game.title,
+              nbAvis: game.nbAvis,
+            }))}
           />
         )}
       </div>
