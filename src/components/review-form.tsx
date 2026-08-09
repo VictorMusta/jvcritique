@@ -760,7 +760,16 @@ export function ReviewForm({
                 type="range"
                 min={0}
                 max={20}
-                step={0.5}
+                /*
+                 * ENTIER, et le curseur de domaine le restera.
+                 *
+                 * Le demi-point ne vaut que pour la note globale personnalisée, celle qui
+                 * REMPLACE le calcul. Une note de domaine est une brique du calcul : lui
+                 * donner une demi-graduation ferait afficher au produit une précision que
+                 * personne n'a voulue, et la base comme la validation la refusent — le
+                 * curseur aurait proposé une valeur impossible à publier.
+                 */
+                step={1}
                 // L'état vide a une apparence DISTINCTE de la valeur 0 : sans ça, un curseur
                 // non touché serait indiscernable d'un « je mets zéro », et les deux ne
                 // produisent pas la même note.
