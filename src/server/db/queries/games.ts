@@ -1,7 +1,7 @@
-import { asc, eq, sql } from "drizzle-orm";
+import { asc, count, eq, sql } from "drizzle-orm";
 
 import { db } from "../index";
-import { games } from "../schema";
+import { games, reviews } from "../schema";
 
 /**
  * Trouve un Jeu par titre, à la casse près, ou le crée — FR-11 : « le catalogue se remplit
@@ -110,6 +110,33 @@ export async function getGameById(id: string) {
   const rows = await db.select().from(games).where(eq(games.id, id)).limit(1);
 
   return rows[0] ?? null;
+}
+
+/**
+ * Catalogue avec le nombre d'avis de chacun, pour l'aide à la saisie.
+ *
+ * La liste ENTIÈRE est renvoyée au client, qui filtre lui-même. À cinq amis le catalogue
+ * tient en quelques dizaines d'entrées : une route de recherche, son anti-rebond et ses
+ * allers-retours réseau coûteraient plus de code et plus de latence que d'envoyer le tout.
+ *
+ * Le jour où le catalogue dépassera quelques centaines de jeux, cette fonction est le seul
+ * endroit à changer — et ce jour-là seulement.
+ */
+export async function listGamesForPicker(): Promise<
+  { id: string; title: string; reviewCount: number }[]
+> {
+  const rows = await db
+    .select({
+      id: games.id,
+      title: games.title,
+      reviewCount: count(reviews.id),
+    })
+    .from(games)
+    .leftJoin(reviews, eq(reviews.gameId, games.id))
+    .groupBy(games.id, games.title)
+    .orderBy(asc(games.title));
+
+  return rows;
 }
 
 /**

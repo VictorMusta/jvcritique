@@ -67,15 +67,27 @@ const entriesFrom = (scores: DomainScores | undefined) => {
   return entries;
 };
 
+/** Un jeu déjà au catalogue, pour l'aide à la saisie. */
+export type ExistingGame = {
+  readonly id: string;
+  readonly title: string;
+  readonly reviewCount: number;
+};
+
+/** Normalisation identique à celle de la base : minuscules, espaces des bords retirés. */
+const normalise = (s: string) => s.trim().toLowerCase();
+
 export function ReviewForm({
   authorName,
   authorWeighting,
   initial,
+  existingGames = [],
 }: {
   readonly authorName: string;
   readonly authorWeighting: Weighting;
   /** Absent en création, présent en modification. */
   readonly initial?: ReviewFormInitial;
+  readonly existingGames?: readonly ExistingGame[];
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -139,6 +151,18 @@ export function ReviewForm({
   const preview = useMemo(
     () => computeScore(domainScores, authorWeighting),
     [domainScores, authorWeighting],
+  );
+
+  /**
+   * Le jeu du catalogue que le titre saisi désigne, s'il y en a un.
+   *
+   * La comparaison reproduit EXACTEMENT celle du serveur — `lower(trim(title))`, l'index
+   * unique de la base. Deux règles de normalisation divergentes annonceraient « nouveau
+   * jeu » avant de rattacher à l'existant, ou l'inverse.
+   */
+  const matchedGame = useMemo(
+    () => existingGames.find((g) => normalise(g.title) === normalise(gameTitle)),
+    [existingGames, gameTitle],
   );
 
   function setEntry(domain: DomainKey, next: Partial<DomainEntry>) {
@@ -214,6 +238,7 @@ export function ReviewForm({
           value={gameTitle}
           onChange={(e) => setGameTitle(e.target.value)}
           placeholder="Valheim"
+          list={!editing && existingGames.length > 0 ? "jeux-existants" : undefined}
           /*
            * Le jeu ne change pas en modification : changer le jeu d'un avis, c'est écrire un
            * autre avis. La contrainte d'unicité (auteur, jeu) le refuserait de toute façon —
@@ -222,11 +247,44 @@ export function ReviewForm({
           disabled={editing}
           className="rounded-[8px] border border-border bg-surface-raised px-s4 py-s3 text-[13px] disabled:text-text-muted"
         />
+        {/*
+          Liste native plutôt qu'une recherche maison : elle marche au clavier, au doigt,
+          avec un lecteur d'écran, et sur mobile le navigateur la présente comme il faut.
+          Le catalogue entier est envoyé — à cinq amis il tient en quelques dizaines
+          d'entrées, et une route de recherche coûterait plus cher qu'elle ne rapporte.
+        */}
+        {!editing && existingGames.length > 0 ? (
+          <datalist id="jeux-existants">
+            {existingGames.map((g) => (
+              <option key={g.id} value={g.title} />
+            ))}
+          </datalist>
+        ) : null}
+
         {editing ? (
           <p className="text-[11px] italic text-text-muted">
             Le jeu ne se change pas. Pour parler d&apos;un autre jeu, écris un nouvel avis.
           </p>
-        ) : null}
+        ) : (
+          /*
+            LA réponse à « comment on lie un avis à un jeu qui en a déjà un ? » — donnée
+            dans l'interface plutôt qu'expliquée ailleurs.
+            Sans cette ligne, rien ne distingue « je rejoins un jeu existant » de « j'en
+            crée un nouveau », et une faute de frappe dédouble le catalogue en silence.
+          */
+          <p
+            aria-live="polite"
+            className={`text-[12px] italic leading-snug ${
+              matchedGame ? "text-text" : "text-text-muted"
+            }`}
+          >
+            {gameTitle.trim() === ""
+              ? "Commence à taper : les jeux déjà critiqués te seront proposés."
+              : matchedGame
+                ? `↳ Ton avis rejoindra ${matchedGame.reviewCount === 1 ? "l'avis existant" : `les ${matchedGame.reviewCount} avis existants`} sur « ${matchedGame.title} ».`
+                : "↳ Nouveau jeu : il sera créé. Vérifie l'orthographe, elle servira à tout le monde."}
+          </p>
+        )}
         <label htmlFor="steamUrl" className="text-[12px] text-text-muted">
           Lien Steam
         </label>

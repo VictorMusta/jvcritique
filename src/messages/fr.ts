@@ -21,7 +21,14 @@ export const errorMessages = {
   NOT_AUTHORIZED: "Cette action ne t'est pas permise.",
   VALIDATION_FAILED: "Il y a un souci dans ce qui a été saisi.",
   NOT_FOUND: "Impossible de trouver ça. C'est peut-être supprimé.",
-  ALREADY_EXISTS: "Ça existe déjà.",
+  /**
+   * Deux codes plutôt qu'un `ALREADY_EXISTS` fourre-tout : « tu as déjà un avis sur ce jeu »
+   * et « ce titre est déjà pris » se corrigent différemment, et un message générique
+   * obligerait l'utilisateur à deviner lequel des deux le concerne.
+   */
+  ALREADY_REVIEWED:
+    "Tu as déjà écrit sur ce jeu. Modifie ton avis plutôt que d'en écrire un second.",
+  GAME_TITLE_TAKEN: "Un autre jeu porte déjà ce titre.",
   UNEXPECTED: "Ça a cassé de notre côté. Réessaie dans un instant.",
 } as const;
 
