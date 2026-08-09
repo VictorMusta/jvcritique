@@ -7,8 +7,13 @@ import { getReaderContext } from "~/server/reader";
 
 export const dynamic = "force-dynamic";
 
-export default async function PublishPage() {
+export default async function PublishPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ jeu?: string }>;
+}) {
   const reader = await getReaderContext();
+  const { jeu } = await searchParams;
 
   if (reader.userId === null) {
     return (
@@ -50,6 +55,12 @@ export default async function PublishPage() {
         authorName={reader.name ?? "Toi"}
         authorWeighting={reader.weighting}
         existingGames={await listGamesForPicker()}
+        /*
+         * Le titre venu de l'URL est une SUGGESTION, pas une consigne : il remplit le champ,
+         * qui reste modifiable, et un brouillon en cours le remplace. Quelqu'un qui avait
+         * commencé un avis ailleurs ne doit pas le perdre parce qu'il a cliqué sur une fiche.
+         */
+        titreJeuPropose={jeu?.slice(0, 255)}
       />
       </div>
     </main>
