@@ -8,9 +8,14 @@ import { setThemeAction } from "~/server/actions/theme";
 /**
  * Choix de la variante de couleurs — FR-20.
  *
- * Chaque option est affichée AVEC SES PROPRES COULEURS, en trois pastilles : fond, surface,
- * accent. Une liste de noms obligerait à essayer chaque thème pour savoir à quoi il
- * ressemble ; ici on choisit en regardant, ce qui est le geste naturel pour une couleur.
+ * Chaque option est affichée AVEC SES PROPRES COULEURS — trois pastilles et, depuis le
+ * 9 août 2026, LA TEXTURE DE FOND du thème qu'elle propose. Une liste de noms obligerait à
+ * essayer chaque thème pour savoir à quoi il ressemble ; ici on choisit en regardant, ce qui
+ * est le geste naturel pour une couleur.
+ *
+ * La texture vient de la même variable `--texture` que le fond du site, lue depuis le
+ * `data-theme` porté par le bouton. Ce n'est pas une vignette : une imitation finirait par
+ * mentir le jour où l'on retouche une géométrie.
  */
 export function ThemePicker({ actuel }: { readonly actuel: ThemeId }) {
   const [pending, startTransition] = useTransition();
@@ -47,23 +52,28 @@ export function ThemePicker({ actuel }: { readonly actuel: ThemeId }) {
                  * Une couleur recopiée finit toujours par diverger de sa source.
                  */
                 data-theme={theme.id}
-                className={`flex w-full items-center gap-s3 rounded-[8px] border p-s3 text-left disabled:opacity-60 ${
-                  choisi ? "border-accent" : "border-border"
+                className={`theme-option relative flex w-full items-center gap-s3 overflow-hidden rounded-[10px] border p-s4 text-left disabled:opacity-60 ${
+                  choisi ? "border-2 border-accent" : "border-border"
                 }`}
-                style={{ backgroundColor: "var(--color-surface)" }}
+                /*
+                 * Le fond est celui de la PAGE, pas d'une carte : c'est ce que le bouton
+                 * propose de regarder. La texture se pose dessus via `.theme-option`, et
+                 * une hauteur plus genereuse lui laisse la place de se lire.
+                 */
+                style={{ backgroundColor: "var(--color-bg)", minHeight: "64px" }}
               >
-                <span className="flex shrink-0 gap-[3px]" aria-hidden>
+                <span className="relative flex shrink-0 gap-[3px]" aria-hidden>
                   {(["--color-bg", "--color-surface-raised", "--color-accent"] as const).map(
                     (variable) => (
                       <span
                         key={variable}
-                        className="h-[18px] w-[10px] rounded-[3px] border border-border"
+                        className="h-[30px] w-[11px] rounded-[3px] border border-border"
                         style={{ backgroundColor: `var(${variable})` }}
                       />
                     ),
                   )}
                 </span>
-                <span className="flex min-w-0 flex-col">
+                <span className="relative flex min-w-0 flex-col">
                   <span
                     className="truncate text-[12px] font-semibold"
                     style={{ color: "var(--color-text)" }}

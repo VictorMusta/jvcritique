@@ -79,8 +79,10 @@ export function ReviewCard({
      * poids visuel, plus rien n'a d'importance et l'écran lit comme un gabarit. Depuis que
      * les palettes sont teintées, l'écart entre `surface` et `bg` suffit à détacher la carte
      * — un trait en plus ne ferait que l'enfermer.
+     *
+     * `orne` pose les deux coins ornés de la variante ; `relative` leur sert de référence.
      */
-    <article className="flex flex-col gap-s4 rounded-md bg-surface p-s5">
+    <article className="orne relative flex flex-col gap-s4 rounded-md bg-surface p-s5">
       <header className="flex flex-col gap-s1">
         {showGameTitle ? (
           /* Le nom du jeu en grand : c'est ce qu'on cherche en parcourant un fil. */
