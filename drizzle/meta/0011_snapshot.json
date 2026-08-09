@@ -1,0 +1,1366 @@
+{
+  "id": "ceb1a9f2-f848-4f65-8fcf-2ae6fc440ffb",
+  "prevId": "d9646fbe-4029-42b1-a62e-0f2d8fbc5071",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.jvcritique_account": {
+      "name": "jvcritique_account",
+      "schema": "",
+      "columns": {
+        "userId": {
+          "name": "userId",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "type": {
+          "name": "type",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "provider": {
+          "name": "provider",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "providerAccountId": {
+          "name": "providerAccountId",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "refresh_token": {
+          "name": "refresh_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "access_token": {
+          "name": "access_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "token_type": {
+          "name": "token_type",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "scope": {
+          "name": "scope",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "id_token": {
+          "name": "id_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "session_state": {
+          "name": "session_state",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "account_user_id_idx": {
+          "name": "account_user_id_idx",
+          "columns": [
+            {
+              "expression": "userId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "jvcritique_account_userId_jvcritique_user_id_fk": {
+          "name": "jvcritique_account_userId_jvcritique_user_id_fk",
+          "tableFrom": "jvcritique_account",
+          "tableTo": "jvcritique_user",
+          "columnsFrom": [
+            "userId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "jvcritique_account_provider_providerAccountId_pk": {
+          "name": "jvcritique_account_provider_providerAccountId_pk",
+          "columns": [
+            "provider",
+            "providerAccountId"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.jvcritique_game_todo": {
+      "name": "jvcritique_game_todo",
+      "schema": "",
+      "columns": {
+        "userId": {
+          "name": "userId",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "gameId": {
+          "name": "gameId",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "game_todo_user_created_idx": {
+          "name": "game_todo_user_created_idx",
+          "columns": [
+            {
+              "expression": "userId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "createdAt",
+              "isExpression": false,
+              "asc": false,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "jvcritique_game_todo_userId_jvcritique_user_id_fk": {
+          "name": "jvcritique_game_todo_userId_jvcritique_user_id_fk",
+          "tableFrom": "jvcritique_game_todo",
+          "tableTo": "jvcritique_user",
+          "columnsFrom": [
+            "userId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "jvcritique_game_todo_gameId_jvcritique_game_id_fk": {
+          "name": "jvcritique_game_todo_gameId_jvcritique_game_id_fk",
+          "tableFrom": "jvcritique_game_todo",
+          "tableTo": "jvcritique_game",
+          "columnsFrom": [
+            "gameId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "jvcritique_game_todo_userId_gameId_pk": {
+          "name": "jvcritique_game_todo_userId_gameId_pk",
+          "columns": [
+            "userId",
+            "gameId"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.jvcritique_game": {
+      "name": "jvcritique_game",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "title": {
+          "name": "title",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "steamUrl": {
+          "name": "steamUrl",
+          "type": "varchar(2048)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "game_title_lower_idx": {
+          "name": "game_title_lower_idx",
+          "columns": [
+            {
+              "expression": "lower(\"title\")",
+              "asc": true,
+              "isExpression": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.jvcritique_notification": {
+      "name": "jvcritique_notification",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "userId": {
+          "name": "userId",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "actorId": {
+          "name": "actorId",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "reviewId": {
+          "name": "reviewId",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kind": {
+          "name": "kind",
+          "type": "jvcritique_notification_kind",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "readAt": {
+          "name": "readAt",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "notification_user_created_idx": {
+          "name": "notification_user_created_idx",
+          "columns": [
+            {
+              "expression": "userId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "createdAt",
+              "isExpression": false,
+              "asc": false,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "jvcritique_notification_userId_jvcritique_user_id_fk": {
+          "name": "jvcritique_notification_userId_jvcritique_user_id_fk",
+          "tableFrom": "jvcritique_notification",
+          "tableTo": "jvcritique_user",
+          "columnsFrom": [
+            "userId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "jvcritique_notification_actorId_jvcritique_user_id_fk": {
+          "name": "jvcritique_notification_actorId_jvcritique_user_id_fk",
+          "tableFrom": "jvcritique_notification",
+          "tableTo": "jvcritique_user",
+          "columnsFrom": [
+            "actorId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "jvcritique_notification_reviewId_jvcritique_review_id_fk": {
+          "name": "jvcritique_notification_reviewId_jvcritique_review_id_fk",
+          "tableFrom": "jvcritique_notification",
+          "tableTo": "jvcritique_review",
+          "columnsFrom": [
+            "reviewId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "notification_not_self": {
+          "name": "notification_not_self",
+          "value": "\"jvcritique_notification\".\"userId\" <> \"jvcritique_notification\".\"actorId\""
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.jvcritique_profile_showcase": {
+      "name": "jvcritique_profile_showcase",
+      "schema": "",
+      "columns": {
+        "userId": {
+          "name": "userId",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "gameId": {
+          "name": "gameId",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "position": {
+          "name": "position",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "words": {
+          "name": "words",
+          "type": "varchar(60)",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "profile_showcase_user_game_idx": {
+          "name": "profile_showcase_user_game_idx",
+          "columns": [
+            {
+              "expression": "userId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "gameId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "jvcritique_profile_showcase_userId_jvcritique_user_id_fk": {
+          "name": "jvcritique_profile_showcase_userId_jvcritique_user_id_fk",
+          "tableFrom": "jvcritique_profile_showcase",
+          "tableTo": "jvcritique_user",
+          "columnsFrom": [
+            "userId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "jvcritique_profile_showcase_gameId_jvcritique_game_id_fk": {
+          "name": "jvcritique_profile_showcase_gameId_jvcritique_game_id_fk",
+          "tableFrom": "jvcritique_profile_showcase",
+          "tableTo": "jvcritique_game",
+          "columnsFrom": [
+            "gameId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "jvcritique_profile_showcase_userId_position_pk": {
+          "name": "jvcritique_profile_showcase_userId_position_pk",
+          "columns": [
+            "userId",
+            "position"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "profile_showcase_position_range": {
+          "name": "profile_showcase_position_range",
+          "value": "\"jvcritique_profile_showcase\".\"position\" between 1 and 5"
+        },
+        "profile_showcase_words_not_blank": {
+          "name": "profile_showcase_words_not_blank",
+          "value": "\"jvcritique_profile_showcase\".\"words\" ~ '[^[:space:]]'"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.jvcritique_review_comment": {
+      "name": "jvcritique_review_comment",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "reviewId": {
+          "name": "reviewId",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "authorId": {
+          "name": "authorId",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "body": {
+          "name": "body",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "review_comment_review_id_idx": {
+          "name": "review_comment_review_id_idx",
+          "columns": [
+            {
+              "expression": "reviewId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "jvcritique_review_comment_reviewId_jvcritique_review_id_fk": {
+          "name": "jvcritique_review_comment_reviewId_jvcritique_review_id_fk",
+          "tableFrom": "jvcritique_review_comment",
+          "tableTo": "jvcritique_review",
+          "columnsFrom": [
+            "reviewId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "jvcritique_review_comment_authorId_jvcritique_user_id_fk": {
+          "name": "jvcritique_review_comment_authorId_jvcritique_user_id_fk",
+          "tableFrom": "jvcritique_review_comment",
+          "tableTo": "jvcritique_user",
+          "columnsFrom": [
+            "authorId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "review_comment_body_not_blank": {
+          "name": "review_comment_body_not_blank",
+          "value": "\"jvcritique_review_comment\".\"body\" ~ '[^[:space:]]'"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.jvcritique_review_domain_score": {
+      "name": "jvcritique_review_domain_score",
+      "schema": "",
+      "columns": {
+        "reviewId": {
+          "name": "reviewId",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "domain": {
+          "name": "domain",
+          "type": "jvcritique_domain",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "value": {
+          "name": "value",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "notApplicable": {
+          "name": "notApplicable",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "jvcritique_review_domain_score_reviewId_jvcritique_review_id_fk": {
+          "name": "jvcritique_review_domain_score_reviewId_jvcritique_review_id_fk",
+          "tableFrom": "jvcritique_review_domain_score",
+          "tableTo": "jvcritique_review",
+          "columnsFrom": [
+            "reviewId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "jvcritique_review_domain_score_reviewId_domain_pk": {
+          "name": "jvcritique_review_domain_score_reviewId_domain_pk",
+          "columns": [
+            "reviewId",
+            "domain"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "review_domain_score_exclusive": {
+          "name": "review_domain_score_exclusive",
+          "value": "(\"jvcritique_review_domain_score\".\"notApplicable\" = true and \"jvcritique_review_domain_score\".\"value\" is null)\n       or (\"jvcritique_review_domain_score\".\"notApplicable\" = false and \"jvcritique_review_domain_score\".\"value\" is not null and \"jvcritique_review_domain_score\".\"value\" between 0 and 20)"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.jvcritique_review_reaction": {
+      "name": "jvcritique_review_reaction",
+      "schema": "",
+      "columns": {
+        "reviewId": {
+          "name": "reviewId",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "userId": {
+          "name": "userId",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kind": {
+          "name": "kind",
+          "type": "jvcritique_reaction_kind",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "review_reaction_review_id_idx": {
+          "name": "review_reaction_review_id_idx",
+          "columns": [
+            {
+              "expression": "reviewId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "jvcritique_review_reaction_reviewId_jvcritique_review_id_fk": {
+          "name": "jvcritique_review_reaction_reviewId_jvcritique_review_id_fk",
+          "tableFrom": "jvcritique_review_reaction",
+          "tableTo": "jvcritique_review",
+          "columnsFrom": [
+            "reviewId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "jvcritique_review_reaction_userId_jvcritique_user_id_fk": {
+          "name": "jvcritique_review_reaction_userId_jvcritique_user_id_fk",
+          "tableFrom": "jvcritique_review_reaction",
+          "tableTo": "jvcritique_user",
+          "columnsFrom": [
+            "userId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "jvcritique_review_reaction_reviewId_userId_pk": {
+          "name": "jvcritique_review_reaction_reviewId_userId_pk",
+          "columns": [
+            "reviewId",
+            "userId"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.jvcritique_review_screenshot": {
+      "name": "jvcritique_review_screenshot",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "reviewId": {
+          "name": "reviewId",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "storageKey": {
+          "name": "storageKey",
+          "type": "varchar(128)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "width": {
+          "name": "width",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "height": {
+          "name": "height",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "position": {
+          "name": "position",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "review_screenshot_review_id_idx": {
+          "name": "review_screenshot_review_id_idx",
+          "columns": [
+            {
+              "expression": "reviewId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "jvcritique_review_screenshot_reviewId_jvcritique_review_id_fk": {
+          "name": "jvcritique_review_screenshot_reviewId_jvcritique_review_id_fk",
+          "tableFrom": "jvcritique_review_screenshot",
+          "tableTo": "jvcritique_review",
+          "columnsFrom": [
+            "reviewId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "jvcritique_review_screenshot_storageKey_unique": {
+          "name": "jvcritique_review_screenshot_storageKey_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "storageKey"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "review_screenshot_dimensions_positive": {
+          "name": "review_screenshot_dimensions_positive",
+          "value": "\"jvcritique_review_screenshot\".\"width\" > 0 and \"jvcritique_review_screenshot\".\"height\" > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.jvcritique_review_update_note": {
+      "name": "jvcritique_review_update_note",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "reviewId": {
+          "name": "reviewId",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "body": {
+          "name": "body",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "review_update_note_review_id_idx": {
+          "name": "review_update_note_review_id_idx",
+          "columns": [
+            {
+              "expression": "reviewId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "jvcritique_review_update_note_reviewId_jvcritique_review_id_fk": {
+          "name": "jvcritique_review_update_note_reviewId_jvcritique_review_id_fk",
+          "tableFrom": "jvcritique_review_update_note",
+          "tableTo": "jvcritique_review",
+          "columnsFrom": [
+            "reviewId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "review_update_note_body_not_blank": {
+          "name": "review_update_note_body_not_blank",
+          "value": "\"jvcritique_review_update_note\".\"body\" ~ '[^[:space:]]'"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.jvcritique_review": {
+      "name": "jvcritique_review",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "gameId": {
+          "name": "gameId",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "authorId": {
+          "name": "authorId",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "overallScoreManual": {
+          "name": "overallScoreManual",
+          "type": "numeric(3, 1)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "isPrivate": {
+          "name": "isPrivate",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "announcedAt": {
+          "name": "announcedAt",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "playtimeHours": {
+          "name": "playtimeHours",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "completed": {
+          "name": "completed",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "whyRecommend": {
+          "name": "whyRecommend",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "whatMissed": {
+          "name": "whatMissed",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "whatHated": {
+          "name": "whatHated",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "whyNotRecommend": {
+          "name": "whyNotRecommend",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "review_author_game_idx": {
+          "name": "review_author_game_idx",
+          "columns": [
+            {
+              "expression": "authorId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "gameId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "review_created_at_idx": {
+          "name": "review_created_at_idx",
+          "columns": [
+            {
+              "expression": "createdAt",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "review_game_id_idx": {
+          "name": "review_game_id_idx",
+          "columns": [
+            {
+              "expression": "gameId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "jvcritique_review_gameId_jvcritique_game_id_fk": {
+          "name": "jvcritique_review_gameId_jvcritique_game_id_fk",
+          "tableFrom": "jvcritique_review",
+          "tableTo": "jvcritique_game",
+          "columnsFrom": [
+            "gameId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "jvcritique_review_authorId_jvcritique_user_id_fk": {
+          "name": "jvcritique_review_authorId_jvcritique_user_id_fk",
+          "tableFrom": "jvcritique_review",
+          "tableTo": "jvcritique_user",
+          "columnsFrom": [
+            "authorId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "review_overall_score_range": {
+          "name": "review_overall_score_range",
+          "value": "\"jvcritique_review\".\"overallScoreManual\" is null or (\"jvcritique_review\".\"overallScoreManual\" between 0 and 20 and (\"jvcritique_review\".\"overallScoreManual\" * 2) = floor(\"jvcritique_review\".\"overallScoreManual\" * 2))"
+        },
+        "review_playtime_non_negative": {
+          "name": "review_playtime_non_negative",
+          "value": "\"jvcritique_review\".\"playtimeHours\" is null or \"jvcritique_review\".\"playtimeHours\" >= 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.jvcritique_session": {
+      "name": "jvcritique_session",
+      "schema": "",
+      "columns": {
+        "sessionToken": {
+          "name": "sessionToken",
+          "type": "varchar(255)",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "userId": {
+          "name": "userId",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "expires": {
+          "name": "expires",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "t_user_id_idx": {
+          "name": "t_user_id_idx",
+          "columns": [
+            {
+              "expression": "userId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "jvcritique_session_userId_jvcritique_user_id_fk": {
+          "name": "jvcritique_session_userId_jvcritique_user_id_fk",
+          "tableFrom": "jvcritique_session",
+          "tableTo": "jvcritique_user",
+          "columnsFrom": [
+            "userId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.jvcritique_user": {
+      "name": "jvcritique_user",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(255)",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "email": {
+          "name": "email",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "emailVerified": {
+          "name": "emailVerified",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "image": {
+          "name": "image",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "bannedAt": {
+          "name": "bannedAt",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.jvcritique_verification_token": {
+      "name": "jvcritique_verification_token",
+      "schema": "",
+      "columns": {
+        "identifier": {
+          "name": "identifier",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "token": {
+          "name": "token",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "expires": {
+          "name": "expires",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "jvcritique_verification_token_identifier_token_pk": {
+          "name": "jvcritique_verification_token_identifier_token_pk",
+          "columns": [
+            "identifier",
+            "token"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.jvcritique_weighting": {
+      "name": "jvcritique_weighting",
+      "schema": "",
+      "columns": {
+        "userId": {
+          "name": "userId",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "domain": {
+          "name": "domain",
+          "type": "jvcritique_domain",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "weight": {
+          "name": "weight",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "jvcritique_weighting_userId_jvcritique_user_id_fk": {
+          "name": "jvcritique_weighting_userId_jvcritique_user_id_fk",
+          "tableFrom": "jvcritique_weighting",
+          "tableTo": "jvcritique_user",
+          "columnsFrom": [
+            "userId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "jvcritique_weighting_userId_domain_pk": {
+          "name": "jvcritique_weighting_userId_domain_pk",
+          "columns": [
+            "userId",
+            "domain"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "weighting_weight_range": {
+          "name": "weighting_weight_range",
+          "value": "\"jvcritique_weighting\".\"weight\" between 0 and 100"
+        }
+      },
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {
+    "public.jvcritique_domain": {
+      "name": "jvcritique_domain",
+      "schema": "public",
+      "values": [
+        "gameplay",
+        "story",
+        "atmosphere",
+        "artDirection",
+        "soundtrack",
+        "pacing",
+        "technical"
+      ]
+    },
+    "public.jvcritique_notification_kind": {
+      "name": "jvcritique_notification_kind",
+      "schema": "public",
+      "values": [
+        "comment",
+        "reaction",
+        "edit"
+      ]
+    },
+    "public.jvcritique_reaction_kind": {
+      "name": "jvcritique_reaction_kind",
+      "schema": "public",
+      "values": [
+        "up",
+        "down"
+      ]
+    }
+  },
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

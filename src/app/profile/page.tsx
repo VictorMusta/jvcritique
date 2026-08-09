@@ -3,10 +3,12 @@ import Link from "next/link";
 import { SignInButton, SignOutButton } from "~/components/auth-buttons";
 import { ReviewCard } from "~/components/review-card";
 import { ReviewFilters } from "~/components/review-filters";
+import { Showcase } from "~/components/showcase";
 import { appliquerFiltre, filtreValide } from "~/domain/filtres-avis";
 import { getReviewsByAuthor } from "~/server/db/queries/reviews";
 import { synthetiserJeu } from "~/domain/scoring/synthese-jeu";
 import { listerTodo } from "~/server/db/queries/todos";
+import { getVitrine } from "~/server/db/queries/showcase";
 import { getReaderContext } from "~/server/reader";
 
 export const dynamic = "force-dynamic";
@@ -42,6 +44,8 @@ export default async function ProfilePage({
    * recalculée sur « ses bangers » vaudrait toujours 18 et quelque, et ne dirait plus rien.
    */
   const aFaire = await listerTodo(reader.userId);
+
+  const vitrine = await getVitrine(reader.userId);
 
   const stats = synthetiserJeu(reviews);
 
@@ -79,6 +83,10 @@ export default async function ProfilePage({
           <SignOutButton />
         </div>
       </header>
+
+      {/* La vitrine passe AVANT les chiffres : c'est ce que la personne a choisi de
+          montrer, les chiffres ne sont qu'un résumé de ce qu'elle a fait. */}
+      <Showcase entrees={vitrine} possessif="ma" />
 
       {/*
         LES CHIFFRES DU COMPTE — demandés par Victor.

@@ -3,9 +3,11 @@ import { notFound } from "next/navigation";
 
 import { ReviewCard } from "~/components/review-card";
 import { ReviewFilters } from "~/components/review-filters";
+import { Showcase } from "~/components/showcase";
 import { appliquerFiltre, filtreValide } from "~/domain/filtres-avis";
 import { synthetiserJeu } from "~/domain/scoring/synthese-jeu";
 import { getReviewsByAuthor, getUserPublic } from "~/server/db/queries/reviews";
+import { getVitrine } from "~/server/db/queries/showcase";
 import { getReaderContext } from "~/server/reader";
 
 export const dynamic = "force-dynamic";
@@ -43,6 +45,8 @@ export default async function ProfilPublicPage({
   const filtre = filtreValide((await searchParams).f);
   const affiches = appliquerFiltre(avis, filtre);
 
+  const vitrine = await getVitrine(userId);
+
   /*
    * Les chiffres portent sur TOUS ses avis visibles, jamais sur la sélection en cours.
    *
@@ -71,6 +75,10 @@ export default async function ProfilPublicPage({
           </Link>
         ) : null}
       </header>
+
+      {/* La vitrine passe AVANT les chiffres : c'est ce que la personne a choisi de
+          montrer, les chiffres ne sont qu'un résumé de ce qu'elle a fait. */}
+      <Showcase entrees={vitrine} possessif="sa" />
 
       {/* Les mêmes chiffres que sur son propre profil, par la même fonction : deux façons de
           compter finiraient par donner deux résultats pour la même personne. */}
