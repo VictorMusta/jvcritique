@@ -55,6 +55,7 @@ export async function createReviewAction(
       whatHated: data.whatHated,
       whyNotRecommend: data.whyNotRecommend,
       domainScores: data.domainScores,
+      screenshots: data.screenshots,
     });
 
     /*

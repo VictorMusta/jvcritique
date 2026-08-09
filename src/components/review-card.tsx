@@ -54,6 +54,7 @@ export function ReviewCard({
   showGameTitle = true,
 }: Props) {
   const audience = audienceFor(readerId, review.author.id);
+  const premiere = review.screenshots[0];
   const author = presentAuthorScore({
     authorName: review.author.name ?? "Quelqu'un",
     overallScoreManual: review.overallScoreManual,
@@ -95,6 +96,31 @@ export function ReviewCard({
       )}
 
       <DomainBars scores={review.domainScores} />
+
+      {/*
+        UNE SEULE vignette dans le fil, même s'il y en a dix. Le fil se parcourt : y empiler
+        toutes les captures d'un avis noierait les avis suivants. La galerie complète est sur
+        la page de l'avis, à un clic.
+      */}
+      {premiere ? (
+        <Link href={`/review/${review.id}`} className="block">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={`/api/screenshot/${premiere.storageKey}?v=vignette`}
+            alt=""
+            width={premiere.width}
+            height={premiere.height}
+            loading="lazy"
+            className="aspect-video w-full rounded-[8px] border border-border object-cover"
+          />
+          {review.screenshots.length > 1 ? (
+            <span className="mt-[2px] block text-[11px] text-text-muted">
+              +{review.screenshots.length - 1}{" "}
+              {review.screenshots.length === 2 ? "autre capture" : "autres captures"}
+            </span>
+          ) : null}
+        </Link>
+      ) : null}
 
       {review.whyRecommend ? (
         <div className="flex flex-col gap-[2px]">

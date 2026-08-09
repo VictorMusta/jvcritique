@@ -7,6 +7,7 @@ const base = {
   steamUrl: null,
   overallScoreManual: null,
   isPrivate: false,
+  screenshots: [],
   playtimeHours: null,
   completed: false,
   whyRecommend: null,
@@ -200,6 +201,48 @@ describe("reviewInputSchema — champs et normalisation", () => {
   it("accepte un avis privé comme un avis public", () => {
     expect(reviewInputSchema.safeParse({ ...base, isPrivate: true }).success).toBe(true);
     expect(reviewInputSchema.safeParse({ ...base, isPrivate: false }).success).toBe(true);
+  });
+
+  it("accepte des captures déjà déposées", () => {
+    const result = reviewInputSchema.safeParse({
+      ...base,
+      screenshots: [
+        { storageKey: "3f2504e0-4f89-41d3-9a0c-0305e82c3301", width: 1920, height: 1080 },
+      ],
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it("refuse une clé de stockage qui n'est pas un identifiant", () => {
+    // La clé sert à composer un chemin de fichier côté serveur. Exiger la forme exacte d'un
+    // UUID ferme la porte aux tentatives de remontée de dossier plutôt que de les nettoyer.
+    for (const cle of ["../../etc/passwd", "abc", "", "3f2504e0-4f89-41d3-9a0c"]) {
+      expect(
+        reviewInputSchema.safeParse({
+          ...base,
+          screenshots: [{ storageKey: cle, width: 100, height: 100 }],
+        }).success,
+        cle,
+      ).toBe(false);
+    }
+  });
+
+  it("refuse des dimensions absurdes", () => {
+    const cle = "3f2504e0-4f89-41d3-9a0c-0305e82c3301";
+
+    expect(
+      reviewInputSchema.safeParse({
+        ...base,
+        screenshots: [{ storageKey: cle, width: 0, height: 100 }],
+      }).success,
+    ).toBe(false);
+    expect(
+      reviewInputSchema.safeParse({
+        ...base,
+        screenshots: [{ storageKey: cle, width: -5, height: 100 }],
+      }).success,
+    ).toBe(false);
   });
 
   it("refuse le même domaine deux fois", () => {

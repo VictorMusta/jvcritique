@@ -59,3 +59,5 @@ _bmad/
 # portfolio, et le principe d'isolation vaut d'être montré ; pas le numéro de port
 # du voisin.
 _bmad-output/
+# Dossier de dépôt local des captures (le volume Docker en production)
+.uploads-dev/
