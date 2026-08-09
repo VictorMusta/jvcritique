@@ -120,6 +120,8 @@ export function ReviewForm({
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  /** Vrai quand recharger la page est le geste qui répare, et non un simple réessai. */
+  const [errorRechargeable, setErrorRechargeable] = useState(false);
   const editing = initial !== undefined;
 
   // Un seul exemplaire pour les sept curseurs : il n'y a qu'un doigt à la fois, et les
@@ -337,6 +339,7 @@ export function ReviewForm({
 
   function submit() {
     setError(null);
+    setErrorRechargeable(false);
 
     const payload = {
       gameTitle,
@@ -395,9 +398,26 @@ export function ReviewForm({
           setError(result.message);
         }
       } catch {
+        /*
+         * « Réessaie » NE SUFFIT PAS, et c'était mon premier message.
+         *
+         * La cause la plus fréquente n'est pas une coupure passagère : c'est une page ouverte
+         * AVANT un déploiement qui poste vers du code dont les identifiants d'action serveur
+         * ont changé. Les journaux de production le disent mot pour mot — « Failed to find
+         * Server Action […] from an older or newer deployment ». Réessayer échouera alors
+         * indéfiniment : c'est la page qu'il faut recharger, pas la requête qu'il faut
+         * refaire.
+         *
+         * Le cas s'est présenté dans le navigateur intégré de Messenger, qui garde les pages
+         * en vie très longtemps sans jamais les recharger de lui-même.
+         *
+         * Recharger était autrefois le geste qui faisait tout perdre. Avec le brouillon, c'est
+         * devenu le geste qui répare — d'où le bouton, à côté de la mention qui rassure.
+         */
+        setErrorRechargeable(true);
         setError(
-          "Le serveur n'a pas répondu — il est peut-être en cours de mise à jour. " +
-            "Ton texte est gardé sur cet appareil : réessaie dans quelques secondes.",
+          "L'envoi n'a pas abouti. Le plus souvent, c'est que cette page a été ouverte " +
+            "avant une mise à jour du site.",
         );
       }
     });
@@ -748,9 +768,30 @@ export function ReviewForm({
         ) : null}
 
         {error ? (
-          <p aria-live="polite" className="text-[12px] text-negative">
-            {error}
-          </p>
+          <div aria-live="polite" className="flex flex-col gap-s2">
+            <p className="text-[12px] leading-snug text-negative">{error}</p>
+            {errorRechargeable ? (
+              <>
+                {/*
+                  La MENTION D'ABORD, le bouton ensuite. Recharger a longtemps été le geste
+                  qui faisait tout perdre : personne ne cliquera dessus sans être rassuré,
+                  et c'est pourtant le seul qui répare quand l'action serveur a changé
+                  d'identifiant sous les pieds de la page.
+                */}
+                <p className="text-[12px] leading-snug text-text">
+                  Ton texte est gardé sur cet appareil. Recharge la page : tu le
+                  retrouveras tel quel, et l’envoi repartira.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => window.location.reload()}
+                  className="self-start rounded-[8px] border border-accent px-s5 py-s3 text-[12px] font-semibold text-accent-text"
+                >
+                  Recharger la page
+                </button>
+              </>
+            ) : null}
+          </div>
         ) : null}
       </div>
     </div>
