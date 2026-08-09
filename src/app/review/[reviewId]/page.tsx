@@ -66,7 +66,7 @@ export default async function ReviewPage({
           Son auteur l&apos;a gardé pour lui. Ça arrive — parfois on écrit d&apos;abord pour
           soi.
         </p>
-        <Link href="/" className="text-[12px] font-semibold text-accent">
+        <Link href="/" className="text-[12px] font-semibold text-accent-text">
           Retour au fil
         </Link>
       </main>
@@ -147,7 +147,7 @@ export default async function ReviewPage({
     <main className="flex flex-col gap-s5 p-s5">
       <header className="flex flex-col gap-s2">
         <h1 className="font-display text-[25px] font-semibold leading-tight">
-          <Link href={`/game/${review.game.id}`} className="hover:text-accent">
+          <Link href={`/game/${review.game.id}`} className="hover:text-accent-text">
             {review.game.title}
           </Link>
         </h1>
@@ -171,7 +171,7 @@ export default async function ReviewPage({
         {isAuthor ? (
           <Link
             href={`/review/${review.id}/edit`}
-            className="self-start text-[12px] font-semibold text-accent"
+            className="self-start text-[12px] font-semibold text-accent-text"
           >
             Modifier
           </Link>
@@ -271,7 +271,7 @@ export default async function ReviewPage({
           href={review.game.steamUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-[12px] text-accent"
+          className="text-[12px] text-accent-text"
         >
           Voir sur Steam →
         </a>

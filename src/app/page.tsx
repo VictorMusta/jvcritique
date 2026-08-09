@@ -55,7 +55,7 @@ export default async function FeedPage() {
         <p className="rounded-[8px] border border-accent/40 bg-surface p-s4 text-[12px]">
           Tu n&apos;as pas encore réglé tes critères, donc tu ne vois que les notes des
           autres.{" "}
-          <Link href="/profile" className="font-semibold text-accent">
+          <Link href="/profile" className="font-semibold text-accent-text">
             Règle ta pondération
           </Link>{" "}
           et chaque avis se recalculera pour toi.

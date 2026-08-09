@@ -76,7 +76,7 @@ export function ReviewCard({
       <header className="flex flex-col gap-s1">
         {showGameTitle ? (
           <h2 className="font-display text-[15px] font-semibold leading-tight">
-            <Link href={`/game/${review.game.id}`} className="hover:text-accent">
+            <Link href={`/game/${review.game.id}`} className="hover:text-accent-text">
               {review.game.title}
             </Link>
           </h2>
@@ -146,7 +146,7 @@ export function ReviewCard({
 
       <Link
         href={`/review/${review.id}`}
-        className="self-start text-[12px] font-semibold text-accent"
+        className="self-start text-[12px] font-semibold text-accent-text"
       >
         Lire l&apos;avis →
       </Link>

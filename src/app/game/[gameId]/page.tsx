@@ -42,7 +42,7 @@ export default async function GamePage({
             href={game.steamUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-[12px] text-accent"
+            className="text-[12px] text-accent-text"
           >
             Voir sur Steam →
           </a>
