@@ -81,6 +81,24 @@ export const reviewInputSchema = z
     whyNotRecommend: optionalText,
 
     domainScores: z.array(domainScoreInputSchema).max(DOMAIN_KEYS.length),
+
+    /**
+     * Screenshots déjà déposés, désignés par leur clé de stockage (FR-8).
+     *
+     * Le PRD dit « aucune limite au nombre d'images par avis ». La borne de 30 n'est pas un
+     * choix produit mais une protection : un tableau non borné venant du client est une
+     * charge utile qu'on accepte de traiter sans savoir sa taille. Trente captures pour un
+     * seul avis, personne ne le fera — la contrainte est donc invisible à l'usage.
+     */
+    screenshots: z
+      .array(
+        z.object({
+          storageKey: z.string().uuid(),
+          width: z.number().int().positive(),
+          height: z.number().int().positive(),
+        }),
+      )
+      .max(30),
   })
   .refine(
     (input) =>

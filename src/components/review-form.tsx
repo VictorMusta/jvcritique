@@ -13,6 +13,8 @@ import {
 import { bearingHints, comfortHints, domainLabels } from "~/messages/fr";
 import { createReviewAction } from "~/server/actions/review";
 import { updateReviewAction } from "~/server/actions/review-edit";
+import type { NewScreenshot } from "~/server/db/queries/reviews";
+import { ScreenshotPicker } from "./screenshot-picker";
 import { useSliderGesture } from "./use-slider-gesture";
 
 /**
@@ -48,6 +50,7 @@ export type ReviewFormInitial = {
   readonly whatHated: string | null;
   readonly whyNotRecommend: string | null;
   readonly domainScores: DomainScores;
+  readonly screenshots: readonly NewScreenshot[];
 };
 
 const entriesFrom = (scores: DomainScores | undefined) => {
@@ -114,6 +117,9 @@ export function ReviewForm({
       : "",
   );
   const [completed, setCompleted] = useState(initial?.completed ?? false);
+  const [screenshots, setScreenshots] = useState<NewScreenshot[]>(
+    () => [...(initial?.screenshots ?? [])],
+  );
   // Public par défaut (FR-17).
   const [isPrivate, setIsPrivate] = useState(initial?.isPrivate ?? false);
   const [texts, setTexts] = useState({
@@ -200,6 +206,7 @@ export function ReviewForm({
       isPrivate,
       playtimeHours: playtime.trim() === "" ? null : Number(playtime),
       completed,
+      screenshots,
       ...texts,
       domainScores: DOMAIN_KEYS.flatMap((domain) => {
         const entry = entries[domain];
@@ -495,6 +502,8 @@ export function ReviewForm({
           Tous facultatifs et indépendants. Remplis ceux qui te viennent.
         </p>
       </section>
+
+      <ScreenshotPicker images={screenshots} onChange={setScreenshots} />
 
       {/* --- Confidentialité (FR-17) --- */}
       <section className="flex flex-col gap-s3">

@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import { auth } from "~/server/auth";
 import { addUpdateNote, updateReview } from "~/server/db/queries/reviews";
+import { supprimerImage } from "~/server/images/store";
 import { fail, guard, ok, type Result } from "~/server/result";
 import { reviewInputSchema } from "~/server/validation/review";
 
@@ -38,7 +39,7 @@ export async function updateReviewAction(
 
     const data = parsed.data;
 
-    const done = await updateReview(reviewId, authorId, {
+    const retirees = await updateReview(reviewId, authorId, {
       isPrivate: data.isPrivate,
       overallScoreManual: data.overallScoreManual,
       playtimeHours: data.playtimeHours,
@@ -48,13 +49,21 @@ export async function updateReviewAction(
       whatHated: data.whatHated,
       whyNotRecommend: data.whyNotRecommend,
       domainScores: data.domainScores,
+      screenshots: data.screenshots,
     });
 
-    if (!done) {
+    if (retirees === null) {
       // L'avis n'existe pas, ou n'est pas le sien. On ne distingue pas les deux : le dire
       // révélerait à un tiers qu'un avis existe à cet identifiant.
       return fail("NOT_AUTHORIZED");
     }
+
+    /*
+     * Les fichiers des captures retirées sont effacés APRÈS la transaction, jamais dedans :
+     * un `rollback` ne ressuscite pas un fichier. Dans cet ordre, le pire cas est un fichier
+     * orphelin sur le volume — jamais une ligne en base qui pointe vers du vide.
+     */
+    await Promise.all(retirees.map((cle) => supprimerImage(cle)));
 
     revalidatePath("/");
     revalidatePath(`/review/${reviewId}`);

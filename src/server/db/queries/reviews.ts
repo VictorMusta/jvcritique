@@ -4,6 +4,7 @@ import type { DomainKey, DomainScores, Weighting } from "~/domain/types";
 import { db } from "../index";
 import {
   reviewDomainScores,
+  reviewScreenshots,
   reviewUpdateNotes,
   reviews,
   weightings,
@@ -51,6 +52,13 @@ export type ReactionKind = "tempting" | "sameHere" | "disagree";
  * que « 2 ». Un compteur est la bonne abstraction quand la foule est anonyme ; ici la foule
  * n'existe pas, ce sont des gens qu'on connaît.
  */
+export type Screenshot = {
+  id: string;
+  storageKey: string;
+  width: number;
+  height: number;
+};
+
 export type Reaction = {
   kind: ReactionKind;
   userId: string;
@@ -82,6 +90,7 @@ export type ReviewForDisplay = {
   updatedAt: Date | null;
   updateNotes: UpdateNote[];
   reactions: Reaction[];
+  screenshots: Screenshot[];
   overallScoreManual: number | null;
   playtimeHours: number | null;
   completed: boolean;
@@ -138,6 +147,7 @@ const reviewWith = {
   domainScores: true,
   updateNotes: true,
   reactions: { with: { user: { columns: { id: true, name: true } } } },
+  screenshots: true,
 } as const;
 
 type RawReview = {
@@ -153,6 +163,7 @@ type RawReview = {
     userId: string;
     user: { id: string; name: string | null };
   }[];
+  screenshots: (Screenshot & { position: number })[];
   overallScoreManual: number | null;
   playtimeHours: number | null;
   completed: boolean;
@@ -188,6 +199,16 @@ function assemble(
       userId: r.userId,
       userName: r.user.name,
     })),
+    // Trié sur la position voulue par l'auteur, pas sur l'ordre de dépôt : il peut avoir
+    // réorganisé ses captures après les avoir envoyées.
+    screenshots: [...raw.screenshots]
+      .sort((a, b) => a.position - b.position)
+      .map(({ id, storageKey, width, height }) => ({
+        id,
+        storageKey,
+        width,
+        height,
+      })),
     overallScoreManual: raw.overallScoreManual,
     playtimeHours: raw.playtimeHours,
     completed: raw.completed,
@@ -280,6 +301,12 @@ export async function getReviewsByAuthor(
   return rows.map((r) => assemble(r, weightingsByUser));
 }
 
+export type NewScreenshot = {
+  storageKey: string;
+  width: number;
+  height: number;
+};
+
 export type NewReviewDomainScore = {
   domain: DomainKey;
   value: number | null;
@@ -316,6 +343,7 @@ export async function createReview(input: {
   whatHated: string | null;
   whyNotRecommend: string | null;
   domainScores: NewReviewDomainScore[];
+  screenshots: NewScreenshot[];
 }): Promise<CreateReviewOutcome> {
   try {
     return await db.transaction(async (tx) => {
@@ -349,6 +377,19 @@ export async function createReview(input: {
         })),
       );
     }
+
+      if (input.screenshots.length > 0) {
+        await tx.insert(reviewScreenshots).values(
+          input.screenshots.map((image, index) => ({
+            reviewId: created.id,
+            storageKey: image.storageKey,
+            width: image.width,
+            height: image.height,
+            // L'ordre du tableau EST l'ordre voulu par l'auteur.
+            position: index,
+          })),
+        );
+      }
 
       return { status: "created" as const, reviewId: created.id };
     });
@@ -395,6 +436,7 @@ export async function createReview(input: {
 export type ReviewForEdit = {
   reviewId: string;
   isPrivate: boolean;
+  screenshots: NewScreenshot[];
   gameTitle: string;
   steamUrl: string | null;
   overallScoreManual: number | null;
@@ -413,7 +455,7 @@ export async function getReviewForEdit(
 ): Promise<ReviewForEdit | null> {
   const raw = await db.query.reviews.findFirst({
     where: and(eq(reviews.id, reviewId), eq(reviews.authorId, authorId)),
-    with: { game: true, domainScores: true },
+    with: { game: true, domainScores: true, screenshots: true },
   });
 
   if (!raw) {
@@ -423,6 +465,12 @@ export async function getReviewForEdit(
   return {
     reviewId: raw.id,
     isPrivate: raw.isPrivate,
+    // Mêmes captures, dans le même ordre : le formulaire de modification doit repartir de
+    // l'état exact, sinon un simple enregistrement les réordonnerait sans qu'on l'ait
+    // demandé.
+    screenshots: [...raw.screenshots]
+      .sort((a, b) => a.position - b.position)
+      .map(({ storageKey, width, height }) => ({ storageKey, width, height })),
     gameTitle: raw.game.title,
     steamUrl: raw.game.steamUrl,
     overallScoreManual: raw.overallScoreManual,
@@ -462,8 +510,9 @@ export async function updateReview(
     whatHated: string | null;
     whyNotRecommend: string | null;
     domainScores: NewReviewDomainScore[];
+    screenshots: NewScreenshot[];
   },
-): Promise<boolean> {
+): Promise<string[] | null> {
   return db.transaction(async (tx) => {
     const updated = await tx
       .update(reviews)
@@ -486,8 +535,14 @@ export async function updateReview(
       .returning({ id: reviews.id });
 
     if (updated.length === 0) {
-      return false;
+      return null;
     }
+
+    // Lues AVANT la suppression : après, on ne saurait plus quels fichiers effacer.
+    const anciennes = await tx
+      .select({ storageKey: reviewScreenshots.storageKey })
+      .from(reviewScreenshots)
+      .where(eq(reviewScreenshots.reviewId, reviewId));
 
     await tx
       .delete(reviewDomainScores)
@@ -504,7 +559,35 @@ export async function updateReview(
       );
     }
 
-    return true;
+    /*
+     * Les captures retirées du formulaire sont rendues à l'appelant, qui effacera leurs
+     * fichiers.
+     *
+     * La suppression sur disque n'a PAS sa place dans la transaction : un `rollback` ne
+     * ressuscite pas un fichier. On sort d'abord de la transaction, on efface ensuite —
+     * dans cet ordre, le pire cas est un fichier orphelin, jamais une ligne qui pointe
+     * vers du vide.
+     */
+    const gardees = new Set(input.screenshots.map((s) => s.storageKey));
+    const aEffacer = anciennes
+      .map((s) => s.storageKey)
+      .filter((cle) => !gardees.has(cle));
+
+    await tx.delete(reviewScreenshots).where(eq(reviewScreenshots.reviewId, reviewId));
+
+    if (input.screenshots.length > 0) {
+      await tx.insert(reviewScreenshots).values(
+        input.screenshots.map((image, index) => ({
+          reviewId,
+          storageKey: image.storageKey,
+          width: image.width,
+          height: image.height,
+          position: index,
+        })),
+      );
+    }
+
+    return aEffacer;
   });
 }
 

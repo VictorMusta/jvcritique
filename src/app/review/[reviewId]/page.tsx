@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { DomainBars } from "~/components/domain-bars";
 import { Reactions } from "~/components/reactions";
+import { ScreenshotGallery } from "~/components/screenshot-gallery";
 import { ScorePair } from "~/components/score-pair";
 import { SpoilerScope, SpoilerText } from "~/components/spoiler-text";
 import { UpdateNoteForm } from "~/components/update-note-form";
@@ -208,6 +209,18 @@ export default async function ReviewPage({
               </p>
             </article>
           ))}
+        </section>
+      ) : null}
+
+      {review.screenshots.length > 0 ? (
+        <section className="flex flex-col gap-s3">
+          <h2 className="text-[9px] font-bold uppercase tracking-[0.06em] text-text-muted">
+            Captures
+          </h2>
+          <ScreenshotGallery
+            screenshots={review.screenshots}
+            gameTitle={review.game.title}
+          />
         </section>
       ) : null}
 
