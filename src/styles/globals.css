@@ -273,6 +273,242 @@
   color-scheme: light;
 }
 
+
+/*
+ * ================================================================================
+ * TEXTURES DE FOND — une matiere par franchise
+ * ================================================================================
+ *
+ * Demande par Victor le 9 aout 2026 : « un peu comme un vieux journal en mode potion craft,
+ * je l'imagine en mode pixel art », et pour Rocket League « des traits futuristes avec des
+ * angles recurrents comme des circuits imprimes ».
+ *
+ * TROIS PROPRIETES TIENNENT TOUT LE DISPOSITIF.
+ *
+ * 1. La texture vit SOUS le contenu et ne passe jamais sous une carte. Les cartes sont
+ *    opaques : aucun des quatorze rapports de contraste mesures en WCAG n'est touche. C'est
+ *    la condition non negociable — le design a deja coute seize corrections de contraste.
+ *
+ * 2. La geometrie est ecrite CINQ FOIS, une par franchise, selectionnee par prefixe. Une
+ *    variante ne regle que sa teinte et son opacite. Ajouter un theme reste donc aussi bon
+ *    marche qu'avant, ce qui etait la promesse de FR-20.
+ *
+ * 3. Aucun octet reseau. Tout est en degrades, comme le grain. Une texture en image
+ *    couterait un aller-retour au premier rendu, pour un effet qui doit se SENTIR sans se
+ *    regarder.
+ *
+ * Les opacites et les cinq motifs ont ete arretes SUR MAQUETTE, par Victor. Ce sont ses
+ * choix, pas des valeurs devinees : une premiere serie de pliures irregulieres pour Potion
+ * Craft a ete rejetee — « trois traits perdus dans du vide, ca se lit comme des rayures ».
+ */
+
+[data-theme] {
+  --tex-trait: rgb(var(--ton) / var(--ton-a));
+  --tex-faible: rgb(var(--ton) / calc(var(--ton-a) * 0.55));
+  --tex-tres-faible: rgb(var(--ton) / calc(var(--ton-a) * 0.3));
+  --tex-lueur: rgb(var(--ton-lueur) / var(--ton-lueur-a));
+}
+
+/*
+ * `--tex-trait` contraste TOUJOURS avec le fond : plus clair que lui en mode sombre, plus
+ * fonce en mode clair. Une premiere version dessinait les traits avec la variable de lumiere,
+ * donc en blanc — et Rocket League clair ne montrait strictement rien.
+ *
+ * `--tex-lueur` est l'arete qui prend la lumiere. Elle ne s'emploie jamais seule : c'est sa
+ * PAIRE avec une arete sombre qui produit le relief, et c'est ainsi qu'on le fait en pixel
+ * art — pas par un degrade.
+ */
+[data-theme$="-dark"] {
+  --ton: 255 255 255;
+  --ton-a: 0.21;
+  --ton-lueur: 0 0 0;
+  --ton-lueur-a: 0.4;
+}
+
+[data-theme$="-light"] {
+  --ton: 72 48 18;
+  --ton-a: 0.4;
+  --ton-lueur: 255 255 255;
+  --ton-lueur-a: 0.95;
+}
+
+/* Le trait prend la couleur de la matiere plutot que du gris. */
+[data-theme="potion-light"] {
+  --ton: 122 82 26;
+  --ton-a: 0.475;
+}
+[data-theme="rocket-dark"] {
+  --ton: 90 180 255;
+  --ton-a: 0.35;
+}
+[data-theme="rocket-light"] {
+  --ton: 20 70 140;
+  --ton-a: 0.4;
+}
+[data-theme="lol-dark"] {
+  --ton: 200 170 110;
+  --ton-a: 0.3;
+}
+[data-theme="lol-light"] {
+  --ton: 30 55 105;
+  --ton-a: 0.375;
+}
+
+/*
+ * POTION CRAFT — carrelage d'apothicaire.
+ *
+ * Le sol d'une officine : des losanges en damier, aretes franches, avec un lisere clair d'un
+ * cote et sombre de l'autre. C'est comme ca qu'on fait du relief en PIXEL ART — par une arete
+ * qui prend la lumiere et une qui la perd, jamais par un degrade.
+ *
+ * Le 45° est partage avec Rocket League, et ce n'est pas un accident a corriger : ici il
+ * decoupe des surfaces PLEINES, la-bas il trace des lignes fines. Un damier et un circuit ne
+ * se confondent pas, meme a angle egal.
+ */
+[data-theme^="potion"] {
+  --texture:
+    repeating-linear-gradient(45deg, var(--tex-tres-faible) 0 24px, transparent 24px 48px),
+    repeating-linear-gradient(-45deg, var(--tex-tres-faible) 0 24px, transparent 24px 48px),
+    repeating-linear-gradient(45deg, transparent 0 46px, var(--tex-lueur) 46px 48px),
+    repeating-linear-gradient(-45deg, transparent 0 46px, var(--tex-trait) 46px 48px);
+  --coin: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 18'%3E%3Cpath d='M0 0h11v3H3v8H0z'/%3E%3Cpath d='M13 0h3v3h-3zM0 13h3v3H0z'/%3E%3C/svg%3E");
+}
+
+/*
+ * ROCKET LEAGUE — circuit imprime.
+ *
+ * Pistes a 45°, angle unique et repete comme demande, avec les pastilles de traversee sur une
+ * trame carree. Des LIGNES FINES, la ou Potion Craft decoupe des surfaces pleines au meme
+ * angle : c'est l'epaisseur, pas l'angle, qui separe les deux motifs.
+ */
+[data-theme^="rocket"] {
+  --texture:
+    repeating-linear-gradient(45deg, transparent 0 37px, var(--tex-trait) 37px 38px, transparent 38px 76px),
+    repeating-linear-gradient(-45deg, transparent 0 53px, var(--tex-trait) 53px 54px, transparent 54px 108px),
+    radial-gradient(circle at 4px 4px, var(--tex-trait) 0 2.5px, transparent 2.5px);
+  --texture-taille: auto, auto, 54px 54px;
+  --coin: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 18'%3E%3Cpath d='M0 3.2L3.2 0h6.6v2.5H4.3L2.5 4.3V10H0z'/%3E%3Cpath d='M12.2 0h3.2v3.2h-3.2z'/%3E%3C/svg%3E");
+}
+
+/*
+ * LEAGUE OF LEGENDS — treillis arcanique.
+ *
+ * Losanges etires a 30°, et surtout PAS 45° : il fallait que ca ne se confonde ni avec le
+ * circuit de Rocket League ni avec le damier de Potion Craft, tous deux diagonaux. Le losange
+ * allonge est la forme des cristaux hextech et des arcs de Demacia.
+ */
+[data-theme^="lol"] {
+  --texture:
+    repeating-linear-gradient(30deg, transparent 0 43px, var(--tex-trait) 43px 44px, transparent 44px 87px),
+    repeating-linear-gradient(-30deg, transparent 0 43px, var(--tex-trait) 43px 44px, transparent 44px 87px);
+  --coin: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 18'%3E%3Cpath d='M0 1.6h7v2.2H2.2V9H0z'/%3E%3Cpath d='M11.5 0l3.4 3.4-3.4 3.4-3.4-3.4z'/%3E%3C/svg%3E");
+}
+
+/*
+ * OVERWATCH — trame hexagonale.
+ *
+ * Trois familles de traits a 60° donnent un treillis triangulaire qui se lit comme des
+ * hexagones, sans une seule image. L'hexagone est la forme de son logo et de toutes ses
+ * icones de competence.
+ *
+ * Les chevrons de danger sont reserves au COIN : repetes sur toute la page, ils
+ * transformeraient l'ecran en chantier.
+ */
+[data-theme^="overwatch"] {
+  --texture:
+    repeating-linear-gradient(60deg, transparent 0 33px, var(--tex-trait) 33px 34px, transparent 34px 67px),
+    repeating-linear-gradient(-60deg, transparent 0 33px, var(--tex-trait) 33px 34px, transparent 34px 67px),
+    repeating-linear-gradient(0deg, transparent 0 57px, var(--tex-trait) 57px 58px, transparent 58px 115px);
+  --coin: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 18'%3E%3Cpath d='M0 5.6L5.6 0h3.1L0 8.7z'/%3E%3Cpath d='M0 11.2L11.2 0h3.1L0 14.3z'/%3E%3Cpath d='M0 16.4L16.4 0H18v1.6L1.6 18H0z'/%3E%3C/svg%3E");
+}
+
+/*
+ * COUNTER-STRIKE — grille tactique.
+ *
+ * Orthogonale, sans fioriture. Le seul des cinq motifs sans aucune diagonale, ce qui le rend
+ * reconnaissable au premier coup d'oeil : une carte d'operation, pas un ornement.
+ */
+[data-theme^="cs"] {
+  --texture:
+    repeating-linear-gradient(0deg, transparent 0 31px, var(--tex-trait) 31px 32px, transparent 32px 63px),
+    repeating-linear-gradient(90deg, transparent 0 31px, var(--tex-trait) 31px 32px, transparent 32px 63px);
+  --coin: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 18'%3E%3Cpath d='M0 0h7.5v2H0z'/%3E%3Cpath d='M0 0h2v7.5H0z'/%3E%3Cpath d='M0 11h2v2.4H0zM11 0h2.4v2H11z'/%3E%3C/svg%3E");
+}
+
+/*
+ * La texture, posee une fois pour les dix variantes.
+ *
+ * `background-size` est une propriete SEPAREE, et pas la syntaxe `0 0/54px 54px` du raccourci :
+ * `background-image` la refuse, et une seule couche mal ecrite rend TOUTE la declaration
+ * invalide. Le fond retombait alors a `none` — Potion Craft et Rocket League etaient
+ * parfaitement plats, sans qu'aucune erreur ne soit signalee nulle part. Seul un releve de la
+ * valeur calculee dans le navigateur l'a montre.
+ *
+ * Fixe et non defilant, comme le grain : une texture qui glisse avec le contenu se remarque,
+ * alors qu'elle ne doit que se sentir.
+ */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image: var(--texture);
+  background-size: var(--texture-taille, auto);
+}
+
+/*
+ * COINS ORNES — « des ptits visuels dans les coins des divs ».
+ *
+ * Le dessin est un MASQUE, pas une image coloree : la couleur vient de `--color-accent`, donc
+ * elle suit la variante sans qu'on ait a produire dix fichiers. Cinq formes couvrent les dix
+ * themes, et une couleur recopiee ne peut pas diverger de sa source.
+ *
+ * Le coin oppose est le MEME dessin tourne d'un demi-tour. Deux formes par theme auraient
+ * double le travail pour un resultat que personne ne distingue.
+ */
+.orne::before,
+.orne::after {
+  content: "";
+  position: absolute;
+  width: 17px;
+  height: 17px;
+  pointer-events: none;
+  opacity: 0.5;
+  background-color: var(--color-accent);
+  mask-image: var(--coin);
+  mask-size: 100% 100%;
+  -webkit-mask-image: var(--coin);
+  -webkit-mask-size: 100% 100%;
+}
+
+.orne::before {
+  top: 5px;
+  left: 5px;
+}
+
+.orne::after {
+  bottom: 5px;
+  right: 5px;
+  transform: rotate(180deg);
+}
+
+/*
+ * Le bouton du selecteur laisse voir la texture qu'il propose.
+ *
+ * C'est la MEME variable `--texture` que le fond du site, pas une vignette recopiee. Une
+ * imitation finirait par mentir le jour ou on retouche une geometrie ; celle-ci ne le peut
+ * pas — c'est la meme declaration, lue depuis le `data-theme` porte par le bouton.
+ */
+.theme-option::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: var(--texture);
+  background-size: var(--texture-taille, auto);
+}
+
 html {
   background-color: var(--color-bg);
 }
