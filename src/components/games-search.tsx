@@ -35,7 +35,7 @@ export function comparable(valeur: string): string {
 export function GamesSearch({
   games,
 }: {
-  readonly games: readonly { id: string; title: string }[];
+  readonly games: readonly { id: string; title: string; nbAvis: number }[];
 }) {
   const [recherche, setRecherche] = useState("");
 
@@ -85,9 +85,14 @@ export function GamesSearch({
             <li key={game.id}>
               <Link
                 href={`/game/${game.id}`}
-                className="block rounded-[8px] border border-border bg-surface-raised px-s4 py-s3 font-display text-[15px] hover:border-accent"
+                className="flex items-baseline justify-between gap-s4 rounded-[8px] border border-border bg-surface-raised px-s4 py-s3 hover:border-accent"
               >
-                {game.title}
+                <span className="font-display text-[15px]">{game.title}</span>
+                {/* Le nombre d'avis, demandé par Victor : c'est ce qui distingue un jeu dont
+                    le groupe a débattu d'un jeu que personne n'a repris. */}
+                <span className="tnum shrink-0 text-[11px] text-text-muted">
+                  {game.nbAvis} {game.nbAvis === 1 ? "avis" : "avis"}
+                </span>
               </Link>
             </li>
           ))}

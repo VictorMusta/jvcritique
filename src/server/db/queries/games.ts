@@ -147,5 +147,25 @@ export async function listGamesForPicker(): Promise<
  * changer.
  */
 export async function listGames() {
-  return db.select().from(games).orderBy(asc(games.title));
+  /*
+   * Le nombre d'avis compte les seuls avis PUBLICS, et c'est une décision de confidentialité
+   * plutôt qu'une simplification.
+   *
+   * Compter les avis privés ferait afficher « 3 avis » sur une fiche qui n'en montre que
+   * deux : l'écart révélerait à tout le monde qu'un avis caché existe, ce que FR-17 sert
+   * précisément à empêcher. Le compte est le même pour tous, y compris pour l'auteur de
+   * l'avis privé — qui sait déjà qu'il l'a écrit.
+   */
+  return db
+    .select({
+      id: games.id,
+      title: games.title,
+      steamUrl: games.steamUrl,
+      createdAt: games.createdAt,
+      nbAvis: sql<number>`count(${reviews.id}) filter (where ${reviews.isPrivate} = false)::int`,
+    })
+    .from(games)
+    .leftJoin(reviews, eq(reviews.gameId, games.id))
+    .groupBy(games.id)
+    .orderBy(asc(games.title));
 }
