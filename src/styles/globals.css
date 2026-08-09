@@ -229,6 +229,36 @@ html {
   background-color: var(--color-bg);
 }
 
+/*
+ * Fondu appliqué UNIQUEMENT pendant un changement de variante.
+ *
+ * La classe est posée par le composant d'accueil au moment du clic, puis retirée. La laisser
+ * en permanence ferait traîner chaque navigation dans un fondu inutile — et donnerait au
+ * produit un air poussif plutôt que soigné.
+ *
+ * Les propriétés personnalisées ne s'animent pas d'elles-mêmes ; ce sont les propriétés
+ * RÉSOLUES qui le font. D'où la liste explicite plutôt qu'un `transition: all`.
+ */
+.theme-transition,
+.theme-transition * {
+  transition:
+    background-color 420ms ease,
+    color 420ms ease,
+    border-color 420ms ease,
+    fill 420ms ease;
+}
+
+/*
+ * Quelqu'un qui a demandé à son système de réduire les animations ne doit pas subir
+ * celle-ci. Le changement de couleur reste instantané, ce qui n'enlève rien à son sens.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .theme-transition,
+  .theme-transition * {
+    transition: none;
+  }
+}
+
 body {
   background-color: var(--color-bg);
   color: var(--color-text);

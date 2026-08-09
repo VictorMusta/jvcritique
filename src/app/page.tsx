@@ -2,6 +2,8 @@ import Link from "next/link";
 
 import { SignInButton } from "~/components/auth-buttons";
 import { InstallPrompt } from "~/components/install-prompt";
+import { ThemeOnboarding } from "~/components/theme-onboarding";
+import { cookies } from "next/headers";
 import { ReviewCard } from "~/components/review-card";
 import { getFeed } from "~/server/db/queries/reviews";
 import { getReaderContext } from "~/server/reader";
@@ -21,8 +23,20 @@ export default async function FeedPage() {
   const reader = await getReaderContext();
   const feed = await getFeed(reader.userId);
 
+  /*
+   * L'accueil se déclenche sur l'ABSENCE de cookie, pas sur une date d'inscription.
+   *
+   * C'est ce qui le fait apparaître aux amis de Victor qui ont déjà un compte — ils n'ont
+   * jamais rien choisi — sans ajouter de colonne ni de migration. Répondre pose le cookie,
+   * donc la question ne revient pas ; sur un nouvel appareil elle se repose, ce qui est le
+   * bon comportement pour un réglage propre à l'appareil.
+   */
+  const aChoisiSonTheme = (await cookies()).has("theme");
+
   return (
     <main className="flex flex-col gap-s5 p-s5">
+      {reader.userId !== null && !aChoisiSonTheme ? <ThemeOnboarding /> : null}
+
       <header className="flex items-baseline justify-between gap-s4">
         <h1 className="font-display text-[25px] font-semibold leading-tight">
           jvcritiqué
