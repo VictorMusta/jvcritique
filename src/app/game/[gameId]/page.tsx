@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 
+import { GameEditForm } from "~/components/game-edit-form";
 import { ReviewCard } from "~/components/review-card";
+import { isAdmin } from "~/server/auth/is-admin";
 import { getGameById } from "~/server/db/queries/games";
 import { getReviewsByGame } from "~/server/db/queries/reviews";
 import { getReaderContext } from "~/server/reader";
@@ -24,6 +26,7 @@ export default async function GamePage({
   // les avis avant de savoir qui les demande.
   const reader = await getReaderContext();
   const reviews = await getReviewsByGame(gameId, reader.userId);
+  const admin = await isAdmin(reader.userId);
 
   return (
     <main className="flex flex-col gap-s5 p-s5">
@@ -43,6 +46,16 @@ export default async function GamePage({
           >
             Voir sur Steam →
           </a>
+        ) : null}
+
+        {/* Entretien du catalogue, réservé aux administrateurs. Le masquage n'est qu'une
+            politesse d'interface : le contrôle qui compte est dans l'action serveur. */}
+        {admin ? (
+          <GameEditForm
+            gameId={game.id}
+            initialTitle={game.title}
+            initialSteamUrl={game.steamUrl}
+          />
         ) : null}
       </header>
 

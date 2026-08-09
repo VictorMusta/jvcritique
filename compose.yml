@@ -65,6 +65,12 @@ services:
       AUTH_URL: ${AUTH_URL:?AUTH_URL manquant}
       # Indique à Auth.js de faire confiance aux en-têtes X-Forwarded-* posés par Caddy.
       AUTH_TRUST_HOST: "true"
+      # Identifiants Discord des administrateurs, séparés par des virgules (D4).
+      #
+      # `:-` et non `:?` : la variable est FACULTATIVE. Sans elle il n'y a simplement aucun
+      # administrateur, ce qui est un état valide — l'exiger empêcherait l'application de
+      # démarrer pour une fonctionnalité dont on peut se passer.
+      ADMIN_DISCORD_IDS: ${ADMIN_DISCORD_IDS:-}
     ports:
       # Écoute sur la BOUCLE LOCALE uniquement.
       #
