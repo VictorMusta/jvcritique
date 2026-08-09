@@ -54,7 +54,7 @@ type AvisPourSynthese = {
  * change d'un visiteur à l'autre. Une fiche de jeu qui afficherait une moyenne différente pour
  * chacun ne voudrait plus rien dire — deux personnes ne pourraient plus en parler.
  */
-function noteDeLAuteur(avis: AvisPourSynthese): number | null {
+export function noteDeLAuteur(avis: AvisPourSynthese): number | null {
   if (avis.overallScoreManual !== null) {
     return avis.overallScoreManual;
   }

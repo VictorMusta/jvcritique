@@ -2,13 +2,19 @@ import Link from "next/link";
 
 import { SignInButton, SignOutButton } from "~/components/auth-buttons";
 import { ReviewCard } from "~/components/review-card";
+import { ReviewFilters } from "~/components/review-filters";
+import { appliquerFiltre, filtreValide } from "~/domain/filtres-avis";
 import { getReviewsByAuthor } from "~/server/db/queries/reviews";
 import { synthetiserJeu } from "~/domain/scoring/synthese-jeu";
 import { getReaderContext } from "~/server/reader";
 
 export const dynamic = "force-dynamic";
 
-export default async function ProfilePage() {
+export default async function ProfilePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ f?: string }>;
+}) {
   const reader = await getReaderContext();
 
   if (reader.userId === null) {
@@ -27,6 +33,13 @@ export default async function ProfilePage() {
 
   // Le compte n'est calculé que pour un administrateur : personne d'autre ne peut agir
   // dessus, et l'afficher exposerait une information d'exploitation à qui n'en fait rien.
+  const filtre = filtreValide((await searchParams).f);
+  const affiches = appliquerFiltre(reviews, filtre);
+
+  /*
+   * Les chiffres portent sur TOUS les avis, jamais sur la sélection en cours : une moyenne
+   * recalculée sur « ses bangers » vaudrait toujours 18 et quelque, et ne dirait plus rien.
+   */
   const stats = synthetiserJeu(reviews);
 
   // Les heures non renseignées ne comptent pas pour zéro : elles ne comptent pas du tout.
@@ -87,16 +100,23 @@ export default async function ProfilePage() {
       </section>
 
       <section className="flex flex-col gap-s4">
-        <h2 className="panneau px-s5 py-s4 font-display text-[15px] font-semibold">
-          Tes avis {reviews.length > 0 ? `(${reviews.length})` : null}
-        </h2>
+        <div className="panneau flex flex-col gap-s4 px-s5 py-s4">
+          <h2 className="font-display text-[15px] font-semibold">
+            Tes avis {reviews.length > 0 ? `(${reviews.length})` : null}
+          </h2>
+          {reviews.length > 0 ? (
+            <ReviewFilters actif={filtre} base="/profile" />
+          ) : null}
+        </div>
 
-        {reviews.length === 0 ? (
+        {affiches.length === 0 ? (
           <p className="text-[12px] text-text-muted">
-            Tu n&apos;as encore rien écrit.
+            {reviews.length === 0
+              ? "Tu n’as encore rien écrit."
+              : "Aucun avis dans cette catégorie. Essaie « Tous »."}
           </p>
         ) : (
-          reviews.map((review) => (
+          affiches.map((review) => (
             <ReviewCard
               key={review.id}
               review={review}
