@@ -581,3 +581,75 @@ export const reviewDomainScoresRelations = relations(
     }),
   }),
 );
+
+// =================================================================================
+// Notifications — FR-19, dans l'application
+// =================================================================================
+
+/**
+ * Ce qui peut arriver à un Avis et mériter d'en avertir son auteur.
+ *
+ * Trois évènements, demandés par Victor : un commentaire, une réaction, et une modification
+ * faite par quelqu'un d'autre. Type énuméré PostgreSQL plutôt qu'un texte libre : une valeur
+ * inconnue est refusée par le moteur, pas par une validation qu'on peut oublier d'appeler.
+ */
+export const notificationKindEnum = pgEnum("jvcritique_notification_kind", [
+  "comment",
+  "reaction",
+  "edit",
+]);
+
+export const notifications = createTable(
+  "notification",
+  (d) => ({
+    id: d.uuid().primaryKey().defaultRandom(),
+    /** Le DESTINATAIRE — l'auteur de l'avis concerné. */
+    userId: d
+      .varchar({ length: 255 })
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    /** Celui qui a agi. */
+    actorId: d
+      .varchar({ length: 255 })
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    reviewId: d
+      .uuid()
+      .notNull()
+      .references(() => reviews.id, { onDelete: "cascade" }),
+    kind: notificationKindEnum().notNull(),
+    createdAt: d
+      .timestamp({ mode: "date", withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    /**
+     * Date de lecture, ou `null` tant qu'elle ne l'est pas.
+     *
+     * Une date plutôt qu'un booléen : elle répond à « est-ce lu ? » exactement comme un
+     * drapeau, et en plus à « depuis quand ». Le booléen n'aurait rien coûté de moins.
+     */
+    readAt: d.timestamp({ mode: "date", withTimezone: true }),
+  }),
+  (t) => [
+    // La seule requête qui compte : « les miennes, les plus récentes d'abord ».
+    index("notification_user_created_idx").on(t.userId, t.createdAt.desc()),
+    /*
+     * ON NE SE NOTIFIE JAMAIS SOI-MÊME.
+     *
+     * Porté par la BASE et pas par une précaution dans le code appelant. Commenter son
+     * propre avis, ou le modifier, est le cas le plus fréquent de tous : sans cette
+     * contrainte, la pastille se déclencherait sur ses propres gestes et deviendrait un
+     * bruit qu'on apprend à ignorer — c'est-à-dire une fonctionnalité morte.
+     */
+    check("notification_not_self", sql`${t.userId} <> ${t.actorId}`),
+  ],
+);
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, { fields: [notifications.userId], references: [users.id] }),
+  actor: one(users, { fields: [notifications.actorId], references: [users.id] }),
+  review: one(reviews, {
+    fields: [notifications.reviewId],
+    references: [reviews.id],
+  }),
+}));

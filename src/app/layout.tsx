@@ -3,6 +3,8 @@ import "~/styles/globals.css";
 import { type Metadata, type Viewport } from "next";
 import { Fraunces, Inter } from "next/font/google";
 
+import { auth } from "~/server/auth";
+import { compterNonLues } from "~/server/db/queries/notifications";
 import { TabBar } from "~/components/tab-bar";
 import { themeValide } from "~/domain/themes";
 import { cookies } from "next/headers";
@@ -74,7 +76,7 @@ export default async function RootLayout({
         <div className="mx-auto min-h-screen w-full max-w-2xl pb-20">
           {children}
         </div>
-        <TabBar />
+        <TabBar nonLues={await compterNonLues((await auth())?.user?.id ?? null)} />
       </body>
     </html>
   );
