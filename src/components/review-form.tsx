@@ -1,7 +1,14 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 
 import { computeScore } from "~/domain/scoring/compute-score";
 import {
@@ -85,6 +92,74 @@ export type ExistingGame = {
 
 /** Normalisation identique à celle de la base : minuscules, espaces des bords retirés. */
 const normalise = (s: string) => s.trim().toLowerCase();
+
+/**
+ * Remet un brouillon en forme depuis une valeur quelconque.
+ *
+ * `localStorage` est une frontière : ce qui en sort a le type qu'on VEUT BIEN lui prêter, pas
+ * celui qu'il a. Chaque champ est donc repris seulement s'il ressemble à ce qu'on attend, et
+ * la forme vierge sert de filet pour tous les autres.
+ */
+function normaliserBrouillon(brut: unknown, vierge: BrouillonAvis): BrouillonAvis {
+  const b = (brut ?? {}) as Partial<Record<keyof BrouillonAvis, unknown>>;
+
+  const chaine = (valeur: unknown, defaut: string) =>
+    typeof valeur === "string" ? valeur : defaut;
+  const booleen = (valeur: unknown, defaut: boolean) =>
+    typeof valeur === "boolean" ? valeur : defaut;
+
+  // Les sept domaines existent TOUJOURS, quoi qu'ait contenu le brouillon : le formulaire
+  // rend un curseur par domaine et lit `entries[cle].state` sans se demander s'il est là.
+  const entries = { ...vierge.entries };
+  const entreesBrutes = (b.entries ?? {}) as Record<string, unknown>;
+
+  for (const cle of DOMAIN_KEYS) {
+    const entree = entreesBrutes[cle] as { state?: unknown; value?: unknown } | undefined;
+
+    if (
+      entree !== undefined &&
+      (entree.state === "empty" ||
+        entree.state === "rated" ||
+        entree.state === "notApplicable") &&
+      typeof entree.value === "number" &&
+      Number.isFinite(entree.value)
+    ) {
+      entries[cle] = { state: entree.state, value: entree.value };
+    }
+  }
+
+  const textesBruts = (b.texts ?? {}) as Record<string, unknown>;
+
+  return {
+    gameTitle: chaine(b.gameTitle, vierge.gameTitle),
+    steamUrl: chaine(b.steamUrl, vierge.steamUrl),
+    entries,
+    manualMode: booleen(b.manualMode, vierge.manualMode),
+    // Un `NaN` sérialisé devient `null`, et les brouillons d'avant le passage en chaîne
+    // portent un nombre. Les deux retombent sur la valeur vierge.
+    manualScore:
+      typeof b.manualScore === "string"
+        ? b.manualScore
+        : typeof b.manualScore === "number"
+          ? String(b.manualScore)
+          : vierge.manualScore,
+    playtime: chaine(b.playtime, vierge.playtime),
+    completed: booleen(b.completed, vierge.completed),
+    screenshots: Array.isArray(b.screenshots)
+      ? (b.screenshots.filter(
+          (image) =>
+            typeof (image as { storageKey?: unknown })?.storageKey === "string",
+        ) as NewScreenshot[])
+      : vierge.screenshots,
+    isPrivate: booleen(b.isPrivate, vierge.isPrivate),
+    texts: {
+      whyRecommend: chaine(textesBruts.whyRecommend, ""),
+      whatMissed: chaine(textesBruts.whatMissed, ""),
+      whatHated: chaine(textesBruts.whatHated, ""),
+      whyNotRecommend: chaine(textesBruts.whyNotRecommend, ""),
+    },
+  };
+}
 
 /** Ce qui est conservé sur l'appareil pendant la frappe. */
 type BrouillonAvis = {
@@ -199,10 +274,21 @@ export function ReviewForm({
    * brouillon de création réapparaîtrait par-dessus une modification, ou l'inverse.
    */
   const cleBrouillon = initial ? `modif-${initial.reviewId}` : "nouveau";
-  const [brouillonRepris, setBrouillonRepris] = useState(false);
+
+  /**
+   * Le brouillon trouvé, EN ATTENTE DE DÉCISION — il n'est pas appliqué tout seul.
+   *
+   * Première version : il était repris d'office, avec un bandeau qui l'annonçait après coup.
+   * Victor a demandé l'inverse, et il a raison — on ne remplit pas le formulaire de quelqu'un
+   * sans le lui demander. Surtout quand on peut se tromper : le bandeau s'affichait sur un
+   * formulaire vide, parce qu'un brouillon vide était quand même un brouillon.
+   */
+  const [brouillonPropose, setBrouillonPropose] = useState<BrouillonAvis | null>(
+    null,
+  );
 
   /*
-   * Empêche la sauvegarde de s'exécuter AVANT la reprise.
+   * Empêche la sauvegarde de s'exécuter AVANT la lecture.
    *
    * Les deux effets tournent dans la même phase, avec le même état : sans ce verrou, la
    * sauvegarde écrirait le formulaire vide par-dessus le brouillon qu'on est en train de
@@ -210,50 +296,65 @@ export function ReviewForm({
    */
   const pretAEcrire = useRef(false);
 
+  /** Le formulaire tel qu'il naît, avant toute frappe. Sert de point de comparaison. */
+  const vierge = useCallback(
+    (): BrouillonAvis => ({
+      gameTitle: initial?.gameTitle ?? titreJeuPropose ?? "",
+      steamUrl: initial?.steamUrl ?? "",
+      entries: entriesFrom(initial?.domainScores),
+      manualMode:
+        initial?.overallScoreManual !== null &&
+        initial?.overallScoreManual !== undefined,
+      manualScore:
+        initial?.overallScoreManual !== null &&
+        initial?.overallScoreManual !== undefined
+          ? String(initial.overallScoreManual)
+          : "14",
+      playtime:
+        initial?.playtimeHours !== null && initial?.playtimeHours !== undefined
+          ? String(initial.playtimeHours)
+          : "",
+      completed: initial?.completed ?? false,
+      screenshots: [...(initial?.screenshots ?? [])],
+      isPrivate: initial?.isPrivate ?? false,
+      texts: {
+        whyRecommend: initial?.whyRecommend ?? "",
+        whatMissed: initial?.whatMissed ?? "",
+        whatHated: initial?.whatHated ?? "",
+        whyNotRecommend: initial?.whyNotRecommend ?? "",
+      },
+    }),
+    [initial, titreJeuPropose],
+  );
+
   /*
-   * La reprise se fait dans un effet, jamais à l'initialisation de l'état.
+   * La lecture se fait dans un effet, jamais à l'initialisation de l'état.
    *
    * `localStorage` n'existe pas sur le serveur : lire à l'initialisation produirait un rendu
    * serveur et un rendu client différents, donc une erreur d'hydratation.
    */
   useEffect(() => {
-    /*
-     * `set-state-in-effect` est désactivée ici, et c'est une exception assumée, pas un
-     * contournement de confort.
-     *
-     * La règle vise les états dérivés, qu'il faut calculer pendant le rendu. Ici il s'agit
-     * d'INITIALISER depuis un stockage qui n'existe pas sur le serveur. Le faire à
-     * l'initialisation de l'état produirait un rendu serveur et un rendu client différents,
-     * donc une erreur d'hydratation — c'est-à-dire remplacer un défaut par un pire.
-     */
-    const repris = lireBrouillon<BrouillonAvis>(cleBrouillon);
+    const trouve = lireBrouillon<BrouillonAvis>(cleBrouillon);
 
-    /* eslint-disable react-hooks/set-state-in-effect */
-    if (repris !== null) {
-      setGameTitle(repris.gameTitle);
-      setSteamUrl(repris.steamUrl);
-      setEntries(repris.entries);
-      setManualMode(repris.manualMode);
-      // Les brouillons écrits avant ce correctif contiennent un nombre, ou `null` là où un
-      // `NaN` a été sérialisé. On repart d'une valeur saine plutôt que de la propager.
-      setManualScore(
-        typeof repris.manualScore === "string"
-          ? repris.manualScore
-          : typeof repris.manualScore === "number"
-            ? String(repris.manualScore)
-            : "14",
-      );
-      setPlaytime(repris.playtime);
-      setCompleted(repris.completed);
-      setScreenshots(repris.screenshots);
-      setIsPrivate(repris.isPrivate);
-      setTexts(repris.texts);
-      setBrouillonRepris(true);
+    /*
+     * UN BROUILLON VIDE N'EST PAS UN BROUILLON.
+     *
+     * C'est le défaut que Victor a vu : « j'ai ce message alors que mon formulaire est
+     * vide ». Ouvrir la page suffisait à en créer un — la sauvegarde s'exécutait juste après
+     * la lecture et enregistrait le formulaire tel quel. La visite suivante trouvait donc
+     * bien quelque chose, et le proposait.
+     *
+     * On compare à la forme VIERGE plutôt que de chercher un champ non vide : un brouillon
+     * dont seule la case « garder pour moi » a été cochée mérite d'être proposé, et une liste
+     * de champs à surveiller finirait par en oublier un.
+     */
+    if (trouve !== null && JSON.stringify(trouve) !== JSON.stringify(vierge())) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setBrouillonPropose(trouve);
     }
-    /* eslint-enable react-hooks/set-state-in-effect */
 
     pretAEcrire.current = true;
-    // Une seule fois, au montage : rejouer la reprise écraserait ce qui est en train d'être
+    // Une seule fois, au montage : rejouer la lecture écraserait ce qui est en train d'être
     // tapé.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -261,7 +362,7 @@ export function ReviewForm({
   useEffect(() => {
     if (!pretAEcrire.current) return;
 
-    ecrireBrouillon(cleBrouillon, {
+    const instantane: BrouillonAvis = {
       gameTitle,
       steamUrl,
       entries,
@@ -272,9 +373,23 @@ export function ReviewForm({
       screenshots,
       isPrivate,
       texts,
-    } satisfies BrouillonAvis);
+    };
+
+    /*
+     * RIEN N'EST ÉCRIT tant que le formulaire est vierge, et rien n'est effacé non plus.
+     *
+     * Ne pas écrire suffit à supprimer le défaut à la racine : le brouillon vide n'existe
+     * jamais. Et ne pas effacer protège le brouillon en attente pendant que son sort est
+     * discuté — sans quoi ouvrir la page le détruirait avant qu'on ait pu cliquer.
+     */
+    if (JSON.stringify(instantane) === JSON.stringify(vierge())) {
+      return;
+    }
+
+    ecrireBrouillon(cleBrouillon, instantane);
   }, [
     cleBrouillon,
+    vierge,
     gameTitle,
     steamUrl,
     entries,
@@ -287,8 +402,39 @@ export function ReviewForm({
     texts,
   ]);
 
-  /** Repart du formulaire tel qu'il était avant toute frappe. */
-  function abandonnerBrouillon() {
+  /**
+   * Verse le brouillon dans le formulaire, APRÈS l'avoir remis en forme.
+   *
+   * Ce qui sort de `localStorage` n'est pas une valeur de confiance : il a pu être écrit par
+   * une version antérieure du formulaire, tronqué, ou modifié à la main. Sans remise en
+   * forme, un `entries` incomplet faisait planter la page entière — « Cannot read properties
+   * of undefined » sur le premier curseur rendu. Trouvé en essayant le bouton, pas en
+   * relisant le code.
+   *
+   * On part donc du formulaire VIERGE et on ne recouvre que ce qui a le bon type. Un champ
+   * douteux est ignoré, jamais propagé : perdre une ligne d'un brouillon vaut mieux que
+   * perdre la page.
+   */
+  function reprendreBrouillon(brut: BrouillonAvis) {
+    const repris = normaliserBrouillon(brut, vierge());
+
+    setGameTitle(repris.gameTitle);
+    setSteamUrl(repris.steamUrl);
+    setEntries(repris.entries);
+    setManualMode(repris.manualMode);
+    // Les brouillons écrits avant la correction du champ de note contiennent un nombre, ou
+    // `null` là où un `NaN` a été sérialisé. On repart d'une valeur saine.
+    setManualScore(repris.manualScore);
+    setPlaytime(repris.playtime);
+    setCompleted(repris.completed);
+    setScreenshots(repris.screenshots);
+    setIsPrivate(repris.isPrivate);
+    setTexts(repris.texts);
+    setBrouillonPropose(null);
+  }
+
+  /** Efface le brouillon pour de bon, et laisse le formulaire tel qu'il est. */
+  function oublierBrouillon() {
     effacerBrouillon(cleBrouillon);
     setGameTitle(initial?.gameTitle ?? "");
     setSteamUrl(initial?.steamUrl ?? "");
@@ -315,7 +461,7 @@ export function ReviewForm({
       whatHated: initial?.whatHated ?? "",
       whyNotRecommend: initial?.whyNotRecommend ?? "",
     });
-    setBrouillonRepris(false);
+    setBrouillonPropose(null);
   }
 
   const domainScores: DomainScores = useMemo(() => {
@@ -483,30 +629,12 @@ export function ReviewForm({
 
   return (
     <div className="flex flex-col gap-s6">
-      {/*
-        * Reprise ANNONCÉE, jamais silencieuse.
-        *
-        * Retrouver un formulaire pré-rempli sans savoir pourquoi inquiète plus que ça ne
-        * rassure — et sur une modification, on pourrait croire que l'avis publié contient
-        * déjà ce texte. Le bouton de sortie est là pour la même raison : une reprise dont on
-        * ne veut pas doit se défaire en un geste.
-        */}
-      {brouillonRepris ? (
-        <div
-          aria-live="polite"
-          className="flex flex-wrap items-center gap-s3 rounded-[10px] border border-accent bg-surface p-s4"
-        >
-          <p className="text-[12px] leading-snug text-text">
-            Tu avais commencé cet avis sans le publier. Je l’ai remis comme tu l’avais laissé.
-          </p>
-          <button
-            type="button"
-            onClick={abandonnerBrouillon}
-            className="text-[11px] text-text-muted underline decoration-dotted underline-offset-2"
-          >
-            Repartir de zéro
-          </button>
-        </div>
+      {brouillonPropose !== null ? (
+        <BrouillonDialogue
+          onReprendre={() => reprendreBrouillon(brouillonPropose)}
+          onOublier={oublierBrouillon}
+          onFermer={() => setBrouillonPropose(null)}
+        />
       ) : null}
 
       {/* --- Le jeu (FR-11) --- */}
@@ -854,5 +982,82 @@ export function ReviewForm({
         ) : null}
       </div>
     </div>
+  );
+}
+
+/**
+ * Proposition de reprise d'un brouillon.
+ *
+ * `<dialog>` natif plutôt qu'un `div` positionné : le navigateur fournit gratuitement le
+ * confinement du focus, la fermeture par Échap et l'inertie de la page derrière. Les
+ * réécrire à la main, c'est trois occasions de les rater.
+ *
+ * LA CROIX NE DÉCIDE RIEN, et c'est exactement ce que Victor a demandé. Elle ferme, sans
+ * reprendre ni effacer : quelqu'un qui n'a pas envie de trancher tout de suite garde son
+ * brouillon intact. Échap fait la même chose, ce qui est la convention du navigateur.
+ */
+function BrouillonDialogue({
+  onReprendre,
+  onOublier,
+  onFermer,
+}: {
+  readonly onReprendre: () => void;
+  readonly onOublier: () => void;
+  readonly onFermer: () => void;
+}) {
+  const boite = useRef<HTMLDialogElement>(null);
+
+  useEffect(() => {
+    // `showModal` et pas l'attribut `open` : seul l'appel rend la boîte réellement modale.
+    boite.current?.showModal();
+  }, []);
+
+  return (
+    <dialog
+      ref={boite}
+      onCancel={(e) => {
+        e.preventDefault();
+        onFermer();
+      }}
+      aria-labelledby="titre-brouillon"
+      className="m-auto w-[min(420px,90vw)] rounded-[12px] border border-border bg-surface p-s5 text-text backdrop:bg-black/60"
+    >
+      <div className="flex flex-col gap-s4">
+        <div className="flex items-start justify-between gap-s4">
+          <h2 id="titre-brouillon" className="font-display text-[17px] font-semibold">
+            Il semble que tu aies un avis non publié en brouillon
+          </h2>
+          <button
+            type="button"
+            onClick={onFermer}
+            aria-label="Fermer sans rien changer"
+            className="shrink-0 rounded-[6px] px-s3 py-[2px] text-[16px] leading-none text-text-muted"
+          >
+            ×
+          </button>
+        </div>
+
+        <p className="text-[12px] leading-snug text-text-muted">
+          Il est gardé sur cet appareil, pas sur le site. Personne d’autre ne l’a vu.
+        </p>
+
+        <div className="flex flex-wrap gap-s3">
+          <button
+            type="button"
+            onClick={onReprendre}
+            className="rounded-[8px] bg-accent px-s5 py-s3 text-[13px] font-semibold text-on-accent"
+          >
+            Terminer mon avis
+          </button>
+          <button
+            type="button"
+            onClick={onOublier}
+            className="rounded-[8px] border border-border px-s5 py-s3 text-[13px] text-text-muted"
+          >
+            Oublier mon brouillon
+          </button>
+        </div>
+      </div>
+    </dialog>
   );
 }
