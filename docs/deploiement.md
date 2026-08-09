@@ -76,6 +76,16 @@ AUTH_URL=https://jvcritique.duckdns.org/api/auth
 # Se récupère dans Discord : mode développeur activé, clic droit sur son profil,
 # « Copier l'identifiant ». Ce n'est PAS l'identifiant interne du compte jvcritiqué.
 ADMIN_DISCORD_IDS=
+
+# Facultatif — salon Discord où annoncer les nouveaux avis.
+# C'est un SECRET : quiconque le détient peut écrire dans le salon. Il ne doit
+# figurer que dans ce fichier, jamais dans un dépôt ni dans une conversation.
+# Réglages du salon → Intégrations → Webhooks → Nouveau webhook.
+DISCORD_WEBHOOK_URL=
+
+# Facultatif — adresse publique, pour les liens des annonces. À défaut, elle se
+# déduit d'AUTH_URL.
+APP_URL=https://jvcritique.duckdns.org
 ```
 
 Restreindre les droits, puisqu'il contient des secrets :

@@ -71,6 +71,10 @@ services:
       # administrateur, ce qui est un état valide — l'exiger empêcherait l'application de
       # démarrer pour une fonctionnalité dont on peut se passer.
       ADMIN_DISCORD_IDS: ${ADMIN_DISCORD_IDS:-}
+      # Annonce des nouveaux avis dans un salon Discord. Facultatif : sans webhook, rien
+      # n'est envoyé, et c'est un état valide.
+      DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL:-}
+      APP_URL: ${APP_URL:-}
     volumes:
       # Les screenshots déposés (FR-8) vivent sur un volume, PAS dans l'image.
       #
