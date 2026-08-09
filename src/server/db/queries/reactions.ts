@@ -7,7 +7,7 @@ import { reviewReactions, reviews } from "../schema";
  * FRONTIÈRE 2 — seul endroit qui parle à la base.
  */
 
-export type ReactionKind = "tempting" | "sameHere" | "disagree";
+export type ReactionKind = "up" | "down";
 
 /**
  * Pose ou remplace la réaction d'un Utilisateur sur un Avis.

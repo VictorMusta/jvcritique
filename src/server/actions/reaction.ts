@@ -16,7 +16,7 @@ import { fail, guard, ok, type Result } from "~/server/result";
  * et deux actions séparées se seraient désynchronisées à la première évolution.
  */
 const reactionInputSchema = z
-  .enum(["tempting", "sameHere", "disagree"])
+  .enum(["up", "down"])
   .nullable();
 
 export async function reactAction(

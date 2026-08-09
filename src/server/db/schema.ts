@@ -361,18 +361,19 @@ export const reviewScreenshotsRelations = relations(
 // =================================================================================
 
 /**
- * Les trois réactions possibles.
+ * Les deux réactions possibles — un pouce en l'air, un pouce en bas.
  *
- * `tempting` n'est pas une de plus : c'est LA mesure du succès du produit. jvcritiqué est
- * né d'un échec précis — ne pas réussir à convaincre cinq amis de jouer à Valheim. Un pote
- * qui lit un avis et coche « ça me tente », c'est exactement ce que l'application est censée
- * provoquer, et rien d'autre dans le schéma ne l'enregistrait.
+ * ELLES ÉTAIENT TROIS. « Ça me tente » a quitté les réactions le 10 août 2026, à la demande
+ * de Victor, parce qu'il n'en était pas une : les deux autres jugent l'avis, celle-là
+ * exprimait une intention personnelle sur le JEU. Elle est devenue une liste de jeux à faire,
+ * ce qu'elle a toujours été en réalité — et les entrées existantes y ont été converties, pas
+ * effacées.
+ *
+ * Le renommage `sameHere`/`disagree` → `up`/`down` accompagne le changement de sens :
+ * « d'accord avec toi » devient « bon avis », ce qui n'est pas la même chose. Garder les
+ * anciennes clés aurait laissé le code dire une chose et l'écran une autre.
  */
-export const reactionKindEnum = pgEnum("jvcritique_reaction_kind", [
-  "tempting",
-  "sameHere",
-  "disagree",
-]);
+export const reactionKindEnum = pgEnum("jvcritique_reaction_kind", ["up", "down"]);
 
 /**
  * Une réaction par personne et par avis — et surtout, PAS un fil de commentaires.
@@ -666,4 +667,50 @@ export const notificationsRelations = relations(notifications, ({ one }) => ({
     fields: [notifications.reviewId],
     references: [reviews.id],
   }),
+}));
+
+// =================================================================================
+// Liste de jeux à faire — demandée par Victor le 10 août 2026
+// =================================================================================
+
+/**
+ * Les jeux qu'une personne veut essayer.
+ *
+ * LIÉE AU JEU, PAS À L'AVIS, et c'est la raison d'être de cette table. « Ça me tente » vivait
+ * sur un avis : trois personnes écrivant sur Hollow Knight produisaient trois entrées pour un
+ * seul jeu à jouer. Ce qu'on veut retenir, c'est le jeu — peu importe quel avis a convaincu.
+ *
+ * La clé primaire `(userId, gameId)` porte la règle « une seule fois par personne ». Ajouter
+ * deux fois le même jeu ne crée pas de doublon : c'est la base qui l'interdit, pas une
+ * vérification qu'on peut oublier.
+ *
+ * PRIVÉE. Personne ne voit la liste de quelqu'un d'autre. C'est une intention, pas une
+ * déclaration publique — et savoir qu'elle serait lue changerait ce qu'on y met.
+ */
+export const gameTodos = createTable(
+  "game_todo",
+  (d) => ({
+    userId: d
+      .varchar({ length: 255 })
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    gameId: d
+      .uuid()
+      .notNull()
+      .references(() => games.id, { onDelete: "cascade" }),
+    createdAt: d
+      .timestamp({ mode: "date", withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  }),
+  (t) => [
+    primaryKey({ columns: [t.userId, t.gameId] }),
+    // « Ma liste, la plus récente en tête » est la seule lecture qui existe.
+    index("game_todo_user_created_idx").on(t.userId, t.createdAt.desc()),
+  ],
+);
+
+export const gameTodosRelations = relations(gameTodos, ({ one }) => ({
+  user: one(users, { fields: [gameTodos.userId], references: [users.id] }),
+  game: one(games, { fields: [gameTodos.gameId], references: [games.id] }),
 }));

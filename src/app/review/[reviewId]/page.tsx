@@ -19,6 +19,7 @@ import {
 import { isAdmin } from "~/server/auth/is-admin";
 import { getComments } from "~/server/db/queries/comments";
 import { getReviewById } from "~/server/db/queries/reviews";
+import { todosParmi } from "~/server/db/queries/todos";
 import { getReaderContext } from "~/server/reader";
 
 export const dynamic = "force-dynamic";
@@ -107,6 +108,12 @@ export default async function ReviewPage({
   const readerScore = presentReaderScore(review, reader.name, reader.weighting);
 
   const admin = await isAdmin(reader.userId);
+
+  // Une seule requête, pour un seul jeu : la fonction en prend un tableau parce que le fil
+  // en affiche vingt, mais ici la liste n'a qu'un élément.
+  const dansLaListe = (
+    await todosParmi(reader.userId, [review.game.id])
+  ).has(review.game.id);
 
   /*
    * DÉCLARÉ AVANT le premier usage, et ce n'est pas une préférence de rangement.
@@ -296,6 +303,8 @@ export default async function ReviewPage({
 
       <Reactions
         reviewId={review.id}
+        gameId={review.game.id}
+        dejaDansLaListe={dansLaListe}
         reactions={review.reactions}
         viewerId={reader.userId}
         isAuthor={isAuthor}

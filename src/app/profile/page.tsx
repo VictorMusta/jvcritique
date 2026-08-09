@@ -6,6 +6,7 @@ import { ReviewFilters } from "~/components/review-filters";
 import { appliquerFiltre, filtreValide } from "~/domain/filtres-avis";
 import { getReviewsByAuthor } from "~/server/db/queries/reviews";
 import { synthetiserJeu } from "~/domain/scoring/synthese-jeu";
+import { listerTodo } from "~/server/db/queries/todos";
 import { getReaderContext } from "~/server/reader";
 
 export const dynamic = "force-dynamic";
@@ -40,6 +41,8 @@ export default async function ProfilePage({
    * Les chiffres portent sur TOUS les avis, jamais sur la sélection en cours : une moyenne
    * recalculée sur « ses bangers » vaudrait toujours 18 et quelque, et ne dirait plus rien.
    */
+  const aFaire = await listerTodo(reader.userId);
+
   const stats = synthetiserJeu(reviews);
 
   // Les heures non renseignées ne comptent pas pour zéro : elles ne comptent pas du tout.
@@ -98,6 +101,37 @@ export default async function ProfilePage({
         <Chiffre valeur={String(heures)} legende={heures === 1 ? "heure de jeu" : "heures de jeu"} />
         <Chiffre valeur={String(termines)} legende={termines === 1 ? "jeu terminé" : "jeux terminés"} />
       </section>
+
+      {/*
+        SA LISTE, SUR SON PROFIL SEULEMENT. Elle n'apparaît pas sur le profil public de
+        quelqu'un d'autre : c'est une intention, pas une déclaration — et savoir qu'elle
+        serait lue changerait ce qu'on y met.
+      */}
+      {aFaire.length > 0 ? (
+        <section className="panneau flex flex-col gap-s3 p-s5">
+          <h2 className="font-display text-[15px] font-semibold">
+            À faire ({aFaire.length})
+          </h2>
+          <ul className="flex flex-col gap-s2">
+            {aFaire.map((jeu) => (
+              <li key={jeu.gameId}>
+                <Link
+                  href={`/game/${jeu.gameId}`}
+                  className="flex items-baseline justify-between gap-s4 rounded-[8px] border border-border bg-surface-raised px-s4 py-s3 hover:border-accent"
+                >
+                  <span className="font-display text-[15px]">{jeu.title}</span>
+                  <span className="shrink-0 text-[11px] text-text-muted">
+                    {jeu.ajouteLe.toLocaleDateString("fr-FR", {
+                      day: "numeric",
+                      month: "long",
+                    })}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       <section className="flex flex-col gap-s4">
         <div className="panneau flex flex-col gap-s4 px-s5 py-s4">
