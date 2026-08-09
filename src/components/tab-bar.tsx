@@ -50,10 +50,16 @@ const items = [
   { href: "/", label: "Fil", glyph: "◈" },
   { href: "/publish", label: "Écrire", glyph: "✎" },
   { href: "/games", label: "Jeux", glyph: "◇" },
+  { href: "/activite", label: "Activité", glyph: "◍" },
   { href: "/profile", label: "Profil", glyph: "◉" },
 ] as const;
 
-export function TabBar() {
+export function TabBar({
+  nonLues = 0,
+}: {
+  /** Notifications non lues, comptées côté serveur et descendues ici. */
+  readonly nonLues?: number;
+}) {
   const pathname = usePathname();
   const [saisieEnCours, setSaisieEnCours] = useState(false);
 
@@ -111,11 +117,30 @@ export function TabBar() {
                   active ? "text-accent-text" : "text-text-muted"
                 }`}
               >
-                <span aria-hidden className="text-base leading-none">
+                <span aria-hidden className="relative text-base leading-none">
                   {glyph}
+                  {/*
+                    LA PASTILLE PORTE LE NOMBRE, pas un simple point.
+                    « 3 » dit s'il vaut la peine d'ouvrir tout de suite ; un point ne dit que
+                    « quelque chose ». Au-delà de neuf, le compte exact n'aide plus personne
+                    et la pastille déborderait de l'icône.
+                  */}
+                  {href === "/activite" && nonLues > 0 ? (
+                    <span className="tnum absolute -right-[9px] -top-[5px] min-w-[15px] rounded-full bg-accent px-[3px] text-center text-[9px] font-bold leading-[15px] text-on-accent">
+                      {nonLues > 9 ? "9+" : nonLues}
+                    </span>
+                  ) : null}
                 </span>
                 <span className="text-[11px] font-semibold leading-tight">
                   {label}
+                  {/* Le compte est répété pour qui écoute la page : la pastille est
+                      décorative, et un lecteur d'écran ne l'annoncerait jamais. */}
+                  {href === "/activite" && nonLues > 0 ? (
+                    <span className="sr-only">
+                      {" "}
+                      — {nonLues} {nonLues === 1 ? "nouveauté" : "nouveautés"}
+                    </span>
+                  ) : null}
                 </span>
               </Link>
             </li>

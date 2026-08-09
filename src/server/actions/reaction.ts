@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import { auth } from "~/server/auth";
 import { removeReaction, setReaction } from "~/server/db/queries/reactions";
+import { notifier } from "~/server/db/queries/notifications";
 import { fail, guard, ok, type Result } from "~/server/result";
 
 /**
@@ -48,6 +49,15 @@ export async function reactAction(
         // n'existe pas » renseignerait un tiers sur ce qui existe.
         return fail("NOT_AUTHORIZED");
       }
+
+      /*
+       * Seule la POSE d'une réaction notifie, jamais son retrait.
+       *
+       * Se raviser est un geste privé. Prévenir quelqu'un qu'on vient de retirer son « moi
+       * aussi » serait au mieux inutile, au pire blessant — et le produit tout entier
+       * cherche à rendre le désaccord confortable.
+       */
+      await notifier({ reviewId, actorId: userId, kind: "reaction" });
     }
 
     // Invalidation route par route (INV-2, R-D3).

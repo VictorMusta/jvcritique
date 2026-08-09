@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import { auth } from "~/server/auth";
 import { isAdmin } from "~/server/auth/is-admin";
+import { notifier } from "~/server/db/queries/notifications";
 import { addComment, deleteComment } from "~/server/db/queries/comments";
 import { fail, guard, ok, type Result } from "~/server/result";
 
@@ -43,6 +44,10 @@ export async function addCommentAction(
       // le dire renseignerait un tiers sur ce qui existe.
       return fail("NOT_AUTHORIZED");
     }
+
+    // Après l'écriture, jamais avant : notifier un commentaire qui n'existe pas mènerait
+    // le destinataire vers une page où il ne trouverait rien.
+    await notifier({ reviewId, actorId: authorId, kind: "comment" });
 
     revalidatePath(`/review/${reviewId}`);
 
