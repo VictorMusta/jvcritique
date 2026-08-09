@@ -10,7 +10,11 @@ export const metadata: Metadata = {
   description:
     "Les avis de jeux de tes potes, notés selon TES critères. Pas selon les leurs.",
   applicationName: "jvcritiqué",
-  icons: [{ rel: "icon", url: "/favicon.ico" }],
+  icons: [
+    { rel: "icon", url: "/favicon.png", type: "image/png" },
+    // iOS ignore le manifeste pour l'icône de l'écran d'accueil et ne lit que celle-ci.
+    { rel: "apple-touch-icon", url: "/icons/apple-touch-icon.png" },
+  ],
   manifest: "/manifest.webmanifest",
 };
 
