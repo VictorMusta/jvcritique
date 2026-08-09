@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 
 import { computeScore } from "~/domain/scoring/compute-score";
 import {
@@ -15,6 +15,11 @@ import { createReviewAction } from "~/server/actions/review";
 import { updateReviewAction } from "~/server/actions/review-edit";
 import type { NewScreenshot } from "~/server/db/queries/reviews";
 import { ScreenshotPicker } from "./screenshot-picker";
+import {
+  ecrireBrouillon,
+  effacerBrouillon,
+  lireBrouillon,
+} from "./brouillon";
 import { useSliderGesture } from "./use-slider-gesture";
 
 /**
@@ -81,6 +86,25 @@ export type ExistingGame = {
 /** Normalisation identique à celle de la base : minuscules, espaces des bords retirés. */
 const normalise = (s: string) => s.trim().toLowerCase();
 
+/** Ce qui est conservé sur l'appareil pendant la frappe. */
+type BrouillonAvis = {
+  gameTitle: string;
+  steamUrl: string;
+  entries: Record<DomainKey, DomainEntry>;
+  manualMode: boolean;
+  manualScore: number;
+  playtime: string;
+  completed: boolean;
+  screenshots: NewScreenshot[];
+  isPrivate: boolean;
+  texts: {
+    whyRecommend: string;
+    whatMissed: string;
+    whatHated: string;
+    whyNotRecommend: string;
+  };
+};
+
 export function ReviewForm({
   authorName,
   authorWeighting,
@@ -137,6 +161,121 @@ export function ReviewForm({
    * légitime. On signale l'existence d'une autre possibilité, on ne reproche rien.
    */
   const [zeroHintShown, setZeroHintShown] = useState(false);
+
+  /*
+   * BROUILLON LOCAL — Hugo perdait tout son texte quand la publication échouait pendant un
+   * déploiement et qu'il rechargeait la page.
+   *
+   * La clé distingue la création de la modification d'un avis précis : sans cela, un
+   * brouillon de création réapparaîtrait par-dessus une modification, ou l'inverse.
+   */
+  const cleBrouillon = initial ? `modif-${initial.reviewId}` : "nouveau";
+  const [brouillonRepris, setBrouillonRepris] = useState(false);
+
+  /*
+   * Empêche la sauvegarde de s'exécuter AVANT la reprise.
+   *
+   * Les deux effets tournent dans la même phase, avec le même état : sans ce verrou, la
+   * sauvegarde écrirait le formulaire vide par-dessus le brouillon qu'on est en train de
+   * lire. Un `ref` et pas un état — le basculer ne doit pas provoquer de rendu.
+   */
+  const pretAEcrire = useRef(false);
+
+  /*
+   * La reprise se fait dans un effet, jamais à l'initialisation de l'état.
+   *
+   * `localStorage` n'existe pas sur le serveur : lire à l'initialisation produirait un rendu
+   * serveur et un rendu client différents, donc une erreur d'hydratation.
+   */
+  useEffect(() => {
+    /*
+     * `set-state-in-effect` est désactivée ici, et c'est une exception assumée, pas un
+     * contournement de confort.
+     *
+     * La règle vise les états dérivés, qu'il faut calculer pendant le rendu. Ici il s'agit
+     * d'INITIALISER depuis un stockage qui n'existe pas sur le serveur. Le faire à
+     * l'initialisation de l'état produirait un rendu serveur et un rendu client différents,
+     * donc une erreur d'hydratation — c'est-à-dire remplacer un défaut par un pire.
+     */
+    const repris = lireBrouillon<BrouillonAvis>(cleBrouillon);
+
+    /* eslint-disable react-hooks/set-state-in-effect */
+    if (repris !== null) {
+      setGameTitle(repris.gameTitle);
+      setSteamUrl(repris.steamUrl);
+      setEntries(repris.entries);
+      setManualMode(repris.manualMode);
+      setManualScore(repris.manualScore);
+      setPlaytime(repris.playtime);
+      setCompleted(repris.completed);
+      setScreenshots(repris.screenshots);
+      setIsPrivate(repris.isPrivate);
+      setTexts(repris.texts);
+      setBrouillonRepris(true);
+    }
+    /* eslint-enable react-hooks/set-state-in-effect */
+
+    pretAEcrire.current = true;
+    // Une seule fois, au montage : rejouer la reprise écraserait ce qui est en train d'être
+    // tapé.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (!pretAEcrire.current) return;
+
+    ecrireBrouillon(cleBrouillon, {
+      gameTitle,
+      steamUrl,
+      entries,
+      manualMode,
+      manualScore,
+      playtime,
+      completed,
+      screenshots,
+      isPrivate,
+      texts,
+    } satisfies BrouillonAvis);
+  }, [
+    cleBrouillon,
+    gameTitle,
+    steamUrl,
+    entries,
+    manualMode,
+    manualScore,
+    playtime,
+    completed,
+    screenshots,
+    isPrivate,
+    texts,
+  ]);
+
+  /** Repart du formulaire tel qu'il était avant toute frappe. */
+  function abandonnerBrouillon() {
+    effacerBrouillon(cleBrouillon);
+    setGameTitle(initial?.gameTitle ?? "");
+    setSteamUrl(initial?.steamUrl ?? "");
+    setEntries(entriesFrom(initial?.domainScores));
+    setManualMode(
+      initial?.overallScoreManual !== null && initial?.overallScoreManual !== undefined,
+    );
+    setManualScore(initial?.overallScoreManual ?? 14);
+    setPlaytime(
+      initial?.playtimeHours !== null && initial?.playtimeHours !== undefined
+        ? String(initial.playtimeHours)
+        : "",
+    );
+    setCompleted(initial?.completed ?? false);
+    setScreenshots([...(initial?.screenshots ?? [])]);
+    setIsPrivate(initial?.isPrivate ?? false);
+    setTexts({
+      whyRecommend: initial?.whyRecommend ?? "",
+      whatMissed: initial?.whatMissed ?? "",
+      whatHated: initial?.whatHated ?? "",
+      whyNotRecommend: initial?.whyNotRecommend ?? "",
+    });
+    setBrouillonRepris(false);
+  }
 
   const domainScores: DomainScores = useMemo(() => {
     const scores: Partial<Record<DomainKey, DomainScores[DomainKey]>> = {};
@@ -226,20 +365,72 @@ export function ReviewForm({
     };
 
     startTransition(async () => {
-      const result = initial
-        ? await updateReviewAction(initial.reviewId, payload)
-        : await createReviewAction(payload);
+      /*
+       * LE `try` EST L'AUTRE MOITIÉ DE LA CORRECTION, et c'est celle qui traite la cause.
+       *
+       * Une action serveur dont la requête n'aboutit pas LÈVE — elle ne rend pas un `Result`
+       * en échec. C'est exactement ce qui arrive quand le conteneur redémarre pendant un
+       * déploiement : l'exception remonte à la frontière d'erreur de Next, qui remplace toute
+       * la page par « This page couldn't load » et son bouton « Reload ».
+       *
+       * Hugo ne perdait donc pas son texte à cause du rechargement : il n'avait plus que ça à
+       * cliquer. Attrapé ici, le formulaire reste à l'écran, rempli, et il n'y a rien à
+       * récupérer.
+       *
+       * Réessayer ne crée pas de doublon : si l'écriture avait abouti côté serveur avant que
+       * la réponse ne se perde, `createReview` répond « avis déjà écrit » — une personne ne
+       * peut avoir qu'un avis par jeu.
+       */
+      try {
+        const result = initial
+          ? await updateReviewAction(initial.reviewId, payload)
+          : await createReviewAction(payload);
 
-      if (result.ok) {
-        router.push(`/review/${result.data.reviewId}`);
-      } else {
-        setError(result.message);
+        if (result.ok) {
+          // Publié : le brouillon n'a plus de raison d'être, et le laisser réapparaîtrait au
+          // prochain avis.
+          effacerBrouillon(cleBrouillon);
+          router.push(`/review/${result.data.reviewId}`);
+        } else {
+          setError(result.message);
+        }
+      } catch {
+        setError(
+          "Le serveur n'a pas répondu — il est peut-être en cours de mise à jour. " +
+            "Ton texte est gardé sur cet appareil : réessaie dans quelques secondes.",
+        );
       }
     });
   }
 
   return (
     <div className="flex flex-col gap-s6">
+      {/*
+        * Reprise ANNONCÉE, jamais silencieuse.
+        *
+        * Retrouver un formulaire pré-rempli sans savoir pourquoi inquiète plus que ça ne
+        * rassure — et sur une modification, on pourrait croire que l'avis publié contient
+        * déjà ce texte. Le bouton de sortie est là pour la même raison : une reprise dont on
+        * ne veut pas doit se défaire en un geste.
+        */}
+      {brouillonRepris ? (
+        <div
+          aria-live="polite"
+          className="flex flex-wrap items-center gap-s3 rounded-[10px] border border-accent bg-surface p-s4"
+        >
+          <p className="text-[12px] leading-snug text-text">
+            Tu avais commencé cet avis sans le publier. Je l’ai remis comme tu l’avais laissé.
+          </p>
+          <button
+            type="button"
+            onClick={abandonnerBrouillon}
+            className="text-[11px] text-text-muted underline decoration-dotted underline-offset-2"
+          >
+            Repartir de zéro
+          </button>
+        </div>
+      ) : null}
+
       {/* --- Le jeu (FR-11) --- */}
       <section className="flex flex-col gap-s3">
         <label htmlFor="gameTitle" className="font-display text-[15px] font-semibold">
