@@ -71,6 +71,31 @@ export function ReviewCard({
 
   const playtime = playtimeLabel(review.playtimeHours, review.completed);
 
+  /*
+   * L'APERÇU PREND LE PREMIER CHAMP REMPLI, pas « pourquoi je le recommande ».
+   *
+   * Hugo a publié un avis sur un jeu qu'il ne recommande PAS : il avait tout écrit dans
+   * « pourquoi je ne le recommande pas », et sa carte apparaissait vide dans le fil. Le
+   * produit supposait qu'un avis se résume par sa recommandation — c'est faux pour la moitié
+   * des avis qu'on a envie d'écrire.
+   *
+   * L'ordre suit celui du formulaire, et l'ÉTIQUETTE SUIT LE CHAMP : sans elle, un extrait
+   * de « ce que j'ai détesté » se lirait comme une recommandation, ce qui inverserait le sens
+   * de l'avis dans le fil.
+   */
+  const apercu = (
+    [
+      ["Pourquoi je le recommande", review.whyRecommend],
+      ["Pourquoi je ne le recommande pas", review.whyNotRecommend],
+      ["Ce qui m'a manqué", review.whatMissed],
+      ["Ce que j'ai détesté", review.whatHated],
+    ] as const
+  ).reduce<{ label: string; body: string } | null>(
+    (trouve, [label, body]) =>
+      trouve ?? (body ? { label, body } : null),
+    null,
+  );
+
   return (
     /*
      * PAS DE BORDURE, et de l'air.
@@ -133,10 +158,10 @@ export function ReviewCard({
         </Link>
       ) : null}
 
-      {review.whyRecommend ? (
+      {apercu !== null ? (
         <div className="flex flex-col gap-[2px]">
           <span className="text-[9px] font-bold uppercase tracking-[0.06em] text-text-muted">
-            Pourquoi je le recommande
+            {apercu.label}
           </span>
           {/*
             L'extrait passe par la fonction d'audience, comme n'importe quel texte d'avis.
@@ -148,7 +173,7 @@ export function ReviewCard({
           */}
           <p className="line-clamp-3 text-[13px] leading-relaxed">
             <SpoilerText
-              segments={renderForAudience(review.whyRecommend, audience)}
+              segments={renderForAudience(apercu.body, audience)}
               gameTitle={review.game.title}
             />
           </p>
