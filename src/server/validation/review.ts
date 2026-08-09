@@ -35,7 +35,8 @@ export function expliquerEchec(erreur: z.ZodError): string {
       "Le lien Steam n’est pas reconnu. Il doit commencer par « https:// » — ou laisse le champ vide.",
     playtimeHours:
       "Le temps de jeu doit être un nombre entier d’heures, sans « h » ni virgule. Écris 20, pas 20,5 ni « 20h ».",
-    overallScoreManual: "La note globale doit être un nombre entier entre 0 et 20.",
+    overallScoreManual:
+      "La note globale se donne entre 0 et 20, au demi-point près — 16 ou 16,5, pas 16,3.",
     domainScores:
       "Une note de domaine ne va pas : chacune est un nombre entier entre 0 et 20, ou « pas évaluable ».",
     screenshots:
@@ -125,8 +126,22 @@ export const reviewInputSchema = z
       z.string().url().max(2048).nullable(),
     ),
 
-    /** `null` signifie « calculée depuis les notes de domaine » (FR-5). */
-    overallScoreManual: z.number().int().min(0).max(20).nullable(),
+    /**
+     * `null` signifie « calculée depuis les notes de domaine » (FR-5).
+     *
+     * DEMI-POINTS ACCEPTÉS, entiers refusés nulle part : 16 et 16,5 sont l'un comme l'autre
+     * des multiples d'un demi. Le pas est vérifié ici ET par une contrainte de la base — la
+     * première parle à l'utilisateur, la seconde garantit l'état même si une correction est
+     * faite à la main en SQL.
+     */
+    overallScoreManual: z
+      .number()
+      .min(0)
+      .max(20)
+      .refine((n) => Number.isInteger(n * 2), {
+        message: "La note globale se donne au demi-point : 16 ou 16,5, pas 16,3.",
+      })
+      .nullable(),
 
     /** Avis privé — public par défaut (FR-17). */
     isPrivate: z.boolean(),

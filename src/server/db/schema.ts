@@ -217,10 +217,16 @@ export const reviews = createTable(
      * signifie « saisie », nulle signifie « calculée » — ce qui supprime au passage
      * toute possibilité d'incohérence entre une valeur et son étiquette.
      *
-     * La saisie manuelle est un entier (FR-5) ; l'arrondi à une décimale ne concerne que
-     * la valeur calculée.
+     * DEMI-POINTS ACCEPTÉS depuis le 9 août 2026, à la demande de Victor. FR-5 imposait un
+     * entier ; l'expérience a tranché contre — Leny s'est trouvé bloqué en tapant « 16,5 »,
+     * qui est la façon dont on note spontanément. Et la note CALCULÉE s'affichait déjà avec
+     * une décimale : refuser à la main ce que la machine produit était une incohérence.
+     *
+     * `numeric` et pas un flottant : un dixième n'a pas de représentation exacte en binaire,
+     * et 16,5 saisi ressortirait un jour 16,499999. Sur une note affichée à côté d'une autre,
+     * l'écart se verrait.
      */
-    overallScoreManual: d.smallint(),
+    overallScoreManual: d.numeric({ precision: 3, scale: 1, mode: "number" }),
 
     /**
      * Avis privé — FR-17. Public par défaut.
@@ -269,7 +275,15 @@ export const reviews = createTable(
     index("review_game_id_idx").on(t.gameId),
     check(
       "review_overall_score_range",
-      sql`${t.overallScoreManual} is null or ${t.overallScoreManual} between 0 and 20`,
+      /*
+       * Les bornes ET le pas d'un demi-point, portés par la base.
+       *
+       * Sans le multiple, `numeric` accepterait 16,3 — une précision que le produit
+       * n'affiche pas et que personne n'a voulue. La contrainte est ici plutôt que dans le
+       * seul code de validation : un jour, une correction faite à la main en SQL passerait à
+       * côté de celui-ci.
+       */
+      sql`${t.overallScoreManual} is null or (${t.overallScoreManual} between 0 and 20 and (${t.overallScoreManual} * 2) = floor(${t.overallScoreManual} * 2))`,
     ),
     check(
       "review_playtime_non_negative",
