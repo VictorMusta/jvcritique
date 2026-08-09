@@ -64,6 +64,37 @@
  * et trancheraient sur le reste.
  */
 
+/*
+ * --- Potion Craft, sombre ---
+ *
+ * Répète les valeurs de `@theme`, et ce n'est PAS redondant.
+ *
+ * Le bloc racine sert de défaut au document entier ; celui-ci sert à teinter un SOUS-ARBRE.
+ * Sans lui, `data-theme="potion-dark"` posé sur un élément ne correspondait à aucune règle,
+ * et l'élément héritait des couleurs ambiantes — la carte « Potion Craft sombre » du
+ * sélecteur s'affichait donc dans le thème courant, seule des cinq à se tromper.
+ *
+ * Défaut trouvé par Victor à l'œil. Ma vérification portait sur la présence des valeurs, pas
+ * sur leur portée : elle annonçait « racine » pour cette variante, ce que j'ai lu comme un
+ * état normal alors que c'était précisément le manque.
+ */
+[data-theme="potion-dark"] {
+  --color-bg: #171310;
+  --color-surface: #221b16;
+  --color-surface-raised: #2c231c;
+  --color-border: #3a2e24;
+  --color-text: #efe3d0;
+  --color-text-muted: #a8937a;
+  --color-accent: #c98a3c;
+  --color-score-author: #efe3d0;
+  --color-score-reader: #86b79a;
+  --color-spoiler-mask: #2c231c;
+  --color-positive: #7fa86b;
+  --color-negative: #b4553f;
+  --color-on-accent: #171310;
+  color-scheme: dark;
+}
+
 /* --- Potion Craft, clair --- */
 [data-theme="potion-light"] {
   --color-bg: #f4ede1;
