@@ -13,6 +13,8 @@ export const env = createEnv({
         : z.string().optional(),
     AUTH_DISCORD_ID: z.string(),
     AUTH_DISCORD_SECRET: z.string(),
+    // Lue ici pour composer les liens des annonces quand `APP_URL` est absente.
+    AUTH_URL: z.string().url().optional(),
     DATABASE_URL: z.string().url(),
     /**
      * Identifiants DISCORD des administrateurs, séparés par des virgules.
@@ -29,6 +31,22 @@ export const env = createEnv({
      * Facultative : sans elle, il n'y a simplement aucun administrateur.
      */
     ADMIN_DISCORD_IDS: z.string().optional(),
+
+    /**
+     * Webhook du salon Discord où annoncer les nouveaux avis.
+     *
+     * Facultatif : sans lui, aucune annonce n'est envoyée, et c'est un état valide. Le
+     * webhook est un SECRET — quiconque le détient peut écrire dans le salon.
+     */
+    DISCORD_WEBHOOK_URL: z.string().url().optional(),
+
+    /**
+     * Adresse publique du site, pour composer les liens des annonces.
+     *
+     * Facultative : à défaut, elle se déduit d'`AUTH_URL`, qui vaut « …/api/auth » par
+     * convention. La déclarer explicitement évite de dépendre de cette convention.
+     */
+    APP_URL: z.string().url().optional(),
     NODE_ENV: z
       .enum(["development", "test", "production"])
       .default("development"),
@@ -51,8 +69,11 @@ export const env = createEnv({
     AUTH_SECRET: process.env.AUTH_SECRET,
     AUTH_DISCORD_ID: process.env.AUTH_DISCORD_ID,
     AUTH_DISCORD_SECRET: process.env.AUTH_DISCORD_SECRET,
+    AUTH_URL: process.env.AUTH_URL,
     DATABASE_URL: process.env.DATABASE_URL,
     ADMIN_DISCORD_IDS: process.env.ADMIN_DISCORD_IDS,
+    DISCORD_WEBHOOK_URL: process.env.DISCORD_WEBHOOK_URL,
+    APP_URL: process.env.APP_URL,
     NODE_ENV: process.env.NODE_ENV,
   },
   /**

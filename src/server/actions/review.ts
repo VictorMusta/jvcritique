@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { auth } from "~/server/auth";
 import { findOrCreateGame } from "~/server/db/queries/games";
 import { createReview } from "~/server/db/queries/reviews";
+import { annoncerAvis } from "~/server/discord";
 import { fail, guard, ok, type Result } from "~/server/result";
 import { reviewInputSchema } from "~/server/validation/review";
 
@@ -68,6 +69,26 @@ export async function createReviewAction(
     if (outcome.status === "alreadyReviewed") {
       return fail("ALREADY_REVIEWED");
     }
+
+    /*
+     * Annonce dans le salon Discord — après la création, jamais avant.
+     *
+     * L'ordre compte : annoncer un avis qui n'existe pas encore produirait un lien mort si
+     * l'insertion échouait ensuite. Et la fonction ne lève jamais — un salon injoignable ne
+     * doit pas transformer une publication réussie en erreur à l'écran.
+     *
+     * La note transmise est celle SAISIE À LA MAIN, ou rien. La note calculée dépend de la
+     * pondération de l'auteur, qui peut changer : la figer dans un message Discord
+     * immuable créerait une valeur périmée qu'aucune invalidation ne pourrait rattraper.
+     */
+    await annoncerAvis({
+      reviewId: outcome.reviewId,
+      gameTitle: data.gameTitle,
+      authorName: session.user?.name ?? "Quelqu'un",
+      score: data.overallScoreManual,
+      body: data.whyRecommend,
+      isPrivate: data.isPrivate,
+    });
 
     // Invalidation déclarée route par route (INV-2, R-D3). Le cache de route de Next est
     // actif par défaut : sans ces appels, le nouvel avis n'apparaîtrait pas dans le fil.
