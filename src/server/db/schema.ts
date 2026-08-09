@@ -714,3 +714,57 @@ export const gameTodosRelations = relations(gameTodos, ({ one }) => ({
   user: one(users, { fields: [gameTodos.userId], references: [users.id] }),
   game: one(games, { fields: [gameTodos.gameId], references: [games.id] }),
 }));
+
+// =================================================================================
+// Vitrine du profil — demandée par Victor le 10 août 2026
+// =================================================================================
+
+/**
+ * Le « top 5 » qu'une personne met en avant sur son profil.
+ *
+ * ON N'Y MET QUE DES JEUX QU'ON A CRITIQUÉS, et c'est ce qui tient tout le reste. Victor
+ * voulait « un lien vers les avis » et une note : sans avis, il n'y a ni l'un ni l'autre, et
+ * il faudrait ressaisir une note qui divergerait un jour de celle de l'avis. La contrainte
+ * supprime la question plutôt que de la gérer.
+ *
+ * La note n'est DONC PAS STOCKÉE ICI. Elle est lue sur l'avis au moment de l'affichage —
+ * même règle que D3 pour les notes calculées : une valeur recopiée devient fausse dès que sa
+ * source change.
+ *
+ * `position` porte l'ordre choisi à la main. Deux clés d'unicité, et chacune dit quelque
+ * chose : `(userId, position)` interdit deux jeux à la même place, `(userId, gameId)`
+ * interdit le même jeu à deux places.
+ */
+export const profileShowcase = createTable(
+  "profile_showcase",
+  (d) => ({
+    userId: d
+      .varchar({ length: 255 })
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    gameId: d
+      .uuid()
+      .notNull()
+      .references(() => games.id, { onDelete: "cascade" }),
+    position: d.smallint().notNull(),
+    /**
+     * Les « trois mots » de Victor.
+     *
+     * La longueur est bornée mais le NOMBRE de mots ne l'est pas : exiger exactement trois
+     * mots ferait refuser « âpre, injuste, absolument inoubliable » pour une raison que
+     * personne ne trouverait juste. La borne courte suffit à obtenir la brièveté voulue.
+     */
+    words: d.varchar({ length: 60 }).notNull(),
+  }),
+  (t) => [
+    primaryKey({ columns: [t.userId, t.position] }),
+    uniqueIndex("profile_showcase_user_game_idx").on(t.userId, t.gameId),
+    check("profile_showcase_position_range", sql`${t.position} between 1 and 5`),
+    check("profile_showcase_words_not_blank", sql`${t.words} ~ '[^[:space:]]'`),
+  ],
+);
+
+export const profileShowcaseRelations = relations(profileShowcase, ({ one }) => ({
+  user: one(users, { fields: [profileShowcase.userId], references: [users.id] }),
+  game: one(games, { fields: [profileShowcase.gameId], references: [games.id] }),
+}));

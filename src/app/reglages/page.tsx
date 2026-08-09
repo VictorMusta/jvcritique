@@ -3,11 +3,13 @@ import { cookies } from "next/headers";
 
 import { AnnounceBacklog } from "~/components/announce-backlog";
 import { SignInButton } from "~/components/auth-buttons";
+import { ShowcaseForm } from "~/components/showcase-form";
 import { ThemePicker } from "~/components/theme-picker";
 import { WeightingForm } from "~/components/weighting-form";
 import { themeValide } from "~/domain/themes";
 import { isAdmin } from "~/server/auth/is-admin";
 import { countPendingAnnouncements } from "~/server/db/queries/announcements";
+import { getVitrine, jeuxCritiquesPar } from "~/server/db/queries/showcase";
 import { getReaderContext } from "~/server/reader";
 
 export const dynamic = "force-dynamic";
@@ -59,6 +61,14 @@ export default async function ReglagesPage() {
           Retour au profil
         </Link>
       </header>
+
+      <ShowcaseForm
+        jeux={await jeuxCritiquesPar(reader.userId)}
+        initial={(await getVitrine(reader.userId)).map((e) => ({
+          gameId: e.gameId,
+          words: e.words,
+        }))}
+      />
 
       <WeightingForm initial={reader.weighting} />
 
