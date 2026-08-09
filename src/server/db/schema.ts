@@ -275,7 +275,62 @@ export const reviewsRelations = relations(reviews, ({ one, many }) => ({
   domainScores: many(reviewDomainScores),
   updateNotes: many(reviewUpdateNotes),
   reactions: many(reviewReactions),
+  screenshots: many(reviewScreenshots),
 }));
+
+// =================================================================================
+// Screenshots — FR-8
+// =================================================================================
+
+/**
+ * Une image jointe à un Avis.
+ *
+ * `storageKey` est un identifiant opaque, pas un chemin : le fichier vit sur un volume, et
+ * la base ne doit rien savoir de son emplacement. Déplacer le stockage un jour ne demandera
+ * aucune migration.
+ *
+ * Les dimensions sont conservées APRÈS réencodage. Elles servent à réserver la place dans la
+ * page avant que l'image arrive, ce qui évite que le texte saute sous les doigts pendant le
+ * chargement — sur un fil, c'est la différence entre lisible et pénible.
+ *
+ * Aucune limite au nombre d'images par Avis (décision du PRD), donc pas de contrainte de
+ * cardinalité ici. `position` fixe l'ordre voulu par l'auteur.
+ */
+export const reviewScreenshots = createTable(
+  "review_screenshot",
+  (d) => ({
+    id: d.uuid().primaryKey().defaultRandom(),
+    reviewId: d
+      .uuid()
+      .notNull()
+      .references(() => reviews.id, { onDelete: "cascade" }),
+    storageKey: d.varchar({ length: 128 }).notNull().unique(),
+    width: d.integer().notNull(),
+    height: d.integer().notNull(),
+    position: d.smallint().notNull().default(0),
+    createdAt: d
+      .timestamp({ mode: "date", withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  }),
+  (t) => [
+    index("review_screenshot_review_id_idx").on(t.reviewId),
+    check(
+      "review_screenshot_dimensions_positive",
+      sql`${t.width} > 0 and ${t.height} > 0`,
+    ),
+  ],
+);
+
+export const reviewScreenshotsRelations = relations(
+  reviewScreenshots,
+  ({ one }) => ({
+    review: one(reviews, {
+      fields: [reviewScreenshots.reviewId],
+      references: [reviews.id],
+    }),
+  }),
+);
 
 // =================================================================================
 // Réactions — hors PRD, ajoutées le 8 août 2026
