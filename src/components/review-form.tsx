@@ -110,12 +110,21 @@ export function ReviewForm({
   authorWeighting,
   initial,
   existingGames = [],
+  titreJeuPropose,
 }: {
   readonly authorName: string;
   readonly authorWeighting: Weighting;
   /** Absent en création, présent en modification. */
   readonly initial?: ReviewFormInitial;
   readonly existingGames?: readonly ExistingGame[];
+  /**
+   * Titre proposé d'avance, quand on arrive depuis la fiche d'un jeu.
+   *
+   * Sans lui, le bouton « Donner mon avis » d'une fiche ouvrirait un formulaire vide et il
+   * faudrait retaper le nom — au risque d'une variante qui créerait une SECONDE fiche pour
+   * le même jeu. Le catalogue se dédoublerait précisément à l'endroit prévu pour l'éviter.
+   */
+  readonly titreJeuPropose?: string;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -128,7 +137,9 @@ export function ReviewForm({
   // règles des crochets interdisent d'en appeler un dans une boucle.
   const gesture = useSliderGesture();
 
-  const [gameTitle, setGameTitle] = useState(initial?.gameTitle ?? "");
+  const [gameTitle, setGameTitle] = useState(
+    initial?.gameTitle ?? titreJeuPropose ?? "",
+  );
   const [steamUrl, setSteamUrl] = useState(initial?.steamUrl ?? "");
   const [entries, setEntries] = useState<Record<DomainKey, DomainEntry>>(() =>
     entriesFrom(initial?.domainScores),
