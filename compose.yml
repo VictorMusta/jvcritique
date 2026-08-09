@@ -71,6 +71,13 @@ services:
       # administrateur, ce qui est un état valide — l'exiger empêcherait l'application de
       # démarrer pour une fonctionnalité dont on peut se passer.
       ADMIN_DISCORD_IDS: ${ADMIN_DISCORD_IDS:-}
+    volumes:
+      # Les screenshots déposés (FR-8) vivent sur un volume, PAS dans l'image.
+      #
+      # Une image Docker est immuable et reconstruite à chaque déploiement : y écrire des
+      # fichiers les ferait disparaître au premier `up --build`. Le volume, lui, survit aux
+      # déploiements — c'est la même raison qui met le `.env` hors du dépôt.
+      - uploads:/app/uploads
     ports:
       # Écoute sur la BOUCLE LOCALE uniquement.
       #
@@ -94,3 +101,5 @@ networks:
 volumes:
   db-data:
     name: jvcritique-db-data
+  uploads:
+    name: jvcritique-uploads
