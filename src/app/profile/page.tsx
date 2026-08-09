@@ -1,13 +1,9 @@
-import { AnnounceBacklog } from "~/components/announce-backlog";
+import Link from "next/link";
+
 import { SignInButton, SignOutButton } from "~/components/auth-buttons";
 import { ReviewCard } from "~/components/review-card";
-import { ThemePicker } from "~/components/theme-picker";
-import { WeightingForm } from "~/components/weighting-form";
-import { themeValide } from "~/domain/themes";
-import { cookies } from "next/headers";
 import { getReviewsByAuthor } from "~/server/db/queries/reviews";
-import { isAdmin } from "~/server/auth/is-admin";
-import { countPendingAnnouncements } from "~/server/db/queries/announcements";
+import { synthetiserJeu } from "~/domain/scoring/synthese-jeu";
 import { getReaderContext } from "~/server/reader";
 
 export const dynamic = "force-dynamic";
@@ -31,9 +27,11 @@ export default async function ProfilePage() {
 
   // Le compte n'est calculé que pour un administrateur : personne d'autre ne peut agir
   // dessus, et l'afficher exposerait une information d'exploitation à qui n'en fait rien.
-  const enAttente = (await isAdmin(reader.userId))
-    ? await countPendingAnnouncements()
-    : 0;
+  const stats = synthetiserJeu(reviews);
+
+  // Les heures non renseignées ne comptent pas pour zéro : elles ne comptent pas du tout.
+  const heures = reviews.reduce((total, r) => total + (r.playtimeHours ?? 0), 0);
+  const termines = reviews.filter((r) => r.completed).length;
 
   return (
     <main className="flex flex-col gap-s4 p-s3">
@@ -41,14 +39,52 @@ export default async function ProfilePage() {
         <h1 className="font-display text-[25px] font-semibold leading-tight">
           {reader.name}
         </h1>
-        <SignOutButton />
+        <div className="flex shrink-0 items-center gap-s4">
+          <Link
+            href="/reglages"
+            className="flex items-center gap-s2 rounded-[8px] border border-accent px-s4 py-s2 text-[12px] font-semibold text-accent-text"
+          >
+            <svg
+              width="13"
+              height="13"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <circle cx="12" cy="12" r="3" />
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z" />
+            </svg>
+            Réglages
+          </Link>
+          <SignOutButton />
+        </div>
       </header>
 
-      <AnnounceBacklog enAttente={enAttente} />
+      {/*
+        LES CHIFFRES DU COMPTE — demandés par Victor.
 
-      <WeightingForm initial={reader.weighting} />
-
-      <ThemePicker actuel={themeValide((await cookies()).get("theme")?.value)} />
+        Ils sortent des avis DÉJÀ CHARGÉS, et la note moyenne passe par `synthetiserJeu`, la
+        même fonction que la synthèse d'un jeu. Une seconde implémentation de « faire une
+        moyenne » finirait par diverger de la première, et deux chiffres différents
+        s'afficheraient pour la même chose à deux endroits du produit.
+      */}
+      <section className="panneau grid grid-cols-2 gap-s4 p-s5 sm:grid-cols-4">
+        <Chiffre valeur={String(reviews.length)} legende={reviews.length === 1 ? "avis écrit" : "avis écrits"} />
+        <Chiffre
+          valeur={
+            stats.globale === null
+              ? "—"
+              : stats.globale.valeur.toLocaleString("fr-FR", { maximumFractionDigits: 1 })
+          }
+          legende="note moyenne"
+        />
+        <Chiffre valeur={String(heures)} legende={heures === 1 ? "heure de jeu" : "heures de jeu"} />
+        <Chiffre valeur={String(termines)} legende={termines === 1 ? "jeu terminé" : "jeux terminés"} />
+      </section>
 
       <section className="flex flex-col gap-s4">
         <h2 className="panneau px-s5 py-s4 font-display text-[15px] font-semibold">
@@ -82,5 +118,23 @@ export default async function ProfilePage() {
         )}
       </section>
     </main>
+  );
+}
+
+/** Un chiffre et ce qu'il compte. La légende n'est jamais facultative. */
+function Chiffre({
+  valeur,
+  legende,
+}: {
+  readonly valeur: string;
+  readonly legende: string;
+}) {
+  return (
+    <div className="flex flex-col">
+      <span className="tnum font-display text-[26px] font-bold leading-none">
+        {valeur}
+      </span>
+      <span className="text-[11px] leading-snug text-text-muted">{legende}</span>
+    </div>
   );
 }
