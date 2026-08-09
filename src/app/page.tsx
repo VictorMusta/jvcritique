@@ -78,7 +78,7 @@ export default async function FeedPage() {
           </Link>
         </div>
       ) : (
-        <div className="flex flex-col gap-s4">
+        <div className="flex flex-col gap-s5">
           {feed.map((review) => (
             <ReviewCard
               key={review.id}

@@ -307,6 +307,46 @@ html {
   }
 }
 
+/*
+ * L'IDENTITÉ TYPOGRAPHIQUE, enfin appliquée.
+ *
+ * `next/font` rend les axes DISPONIBLES ; sans ce réglage, Fraunces s'affiche à ses valeurs
+ * par défaut — c'est-à-dire comme un serif de plus. DESIGN.md est catégorique : « c'est ce
+ * réglage, et rien d'autre, qui produit le registre artisanal ».
+ *
+ * SOFT 60 arrondit les terminaisons, WONK 1 active les formes « de traviole » — le g à
+ * boucle, le a penché. C'est ce qui fait qu'un titre a l'air écrit de la main de quelqu'un
+ * plutôt que composé par une machine.
+ */
+.font-display,
+[class*="font-display"] {
+  font-variation-settings:
+    "SOFT" 60,
+    "WONK" 1;
+  letter-spacing: -0.01em;
+}
+
+/*
+ * GRAIN.
+ *
+ * La spine décrit un plan de travail — bois, cuivre terni, parchemin. Un aplat parfaitement
+ * uniforme lit comme un tableau de bord ; un grain à peine perceptible lit comme une
+ * matière. C'est le rapport qualité/effort le plus élevé de tout le design : quelques lignes,
+ * aucun octet réseau, et l'écran cesse d'avoir l'air d'un gabarit.
+ *
+ * Fixe et non défilant : une texture qui glisse avec le contenu se remarque, alors qu'elle
+ * ne doit que se sentir.
+ */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
 body {
   background-color: var(--color-bg);
   color: var(--color-text);
@@ -416,10 +456,30 @@ input[type="range"].domain-slider[data-empty="true"]::-moz-range-thumb {
  * texte reste dans les octets. Pour la V0, les spoilers sont reportés (FR-6) — ces règles
  * existent pour que le jour où le parseur arrive, l'apparence soit déjà juste.
  */
+/*
+ * Masque de spoiler.
+ *
+ * PAS de liseré intérieur : il faisait ressembler le masque à un champ de saisie vide, donc
+ * à quelque chose qu'on devrait remplir plutôt qu'à quelque chose de caché. Une barre pleine,
+ * en hachures obliques, dit « il y a du texte là-dessous » sans ambiguïté — et le motif
+ * survit à tous les thèmes puisqu'il se compose des couleurs de la variante.
+ *
+ * `color: transparent` reste par sécurité, mais il ne masque rien : l'élément ne contient
+ * aucun texte. Le contenu n'est rendu qu'après révélation.
+ */
 .spoiler-mask {
-  background: var(--color-spoiler-mask);
-  box-shadow: inset 0 0 0 1px var(--color-border);
+  background-color: var(--color-spoiler-mask);
+  background-image: repeating-linear-gradient(
+    -45deg,
+    transparent 0 4px,
+    color-mix(in srgb, var(--color-text-muted) 22%, transparent) 4px 8px
+  );
   border-radius: 3px;
   color: transparent;
   user-select: none;
+  transition: filter 150ms ease;
+}
+
+.spoiler-mask:hover {
+  filter: brightness(1.25);
 }
