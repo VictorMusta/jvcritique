@@ -297,8 +297,23 @@ function refus(patch: Record<string, unknown>): string {
 
 describe("expliquerEchec — le message désigne le champ", () => {
   it("nomme la note globale, avec la règle et un exemple", () => {
-    // LE cas de Leny : une note personnalisée à virgule.
-    expect(refus({ overallScoreManual: 16.5 })).toContain("nombre entier");
+    // 16,5 est ACCEPTÉ depuis la décision de Victor du 9 août 2026 ; c'est le tiers de point
+    // qui ne l'est pas, faute d'être affichable.
+    expect(refus({ overallScoreManual: 16.3 })).toContain("demi-point");
+  });
+
+  it("ACCEPTE une note au demi-point", () => {
+    // Le cas de Leny, qui était bloqué. FR-5 imposait un entier ; l'usage a tranché contre,
+    // et la note calculée s'affichait déjà avec une décimale.
+    const parsed = reviewInputSchema.safeParse({ ...valide, overallScoreManual: 16.5 });
+
+    expect(parsed.success).toBe(true);
+    expect(parsed.success && parsed.data.overallScoreManual).toBe(16.5);
+  });
+
+  it("refuse toujours une note hors bornes", () => {
+    expect(refus({ overallScoreManual: 20.5 })).toContain("0 et 20");
+    expect(refus({ overallScoreManual: -0.5 })).toContain("0 et 20");
   });
 
   it("nomme le temps de jeu et interdit explicitement la virgule", () => {

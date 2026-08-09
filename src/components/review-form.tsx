@@ -533,14 +533,22 @@ export function ReviewForm({
      * une note illisible part comme « pas de note », et l'avis serait refusé pour une raison
      * qui n'est pas la vraie. Mieux vaut le dire tout de suite, sans attendre le réseau.
      */
+    // La virgule est la façon française d'écrire une décimale, et `Number` ne la connaît
+    // pas. La convertir ici plutôt que d'interdire la saisie la plus naturelle.
     const noteSaisie = manualMode ? Number(manualScore.replace(",", ".")) : null;
 
     if (
       manualMode &&
-      (!Number.isInteger(noteSaisie) || noteSaisie! < 0 || noteSaisie! > 20)
+      (noteSaisie === null ||
+        !Number.isFinite(noteSaisie) ||
+        noteSaisie < 0 ||
+        noteSaisie > 20 ||
+        // Demi-points acceptés, tiers de point non : le produit n'affiche qu'une décimale,
+        // et 16,3 donnerait un chiffre que personne n'a voulu.
+        !Number.isInteger(noteSaisie * 2))
     ) {
       setError(
-        "La note globale doit être un nombre entier entre 0 et 20 — 16, pas 16,5.",
+        "La note globale se donne entre 0 et 20, au demi-point près — 16 ou 16,5, pas 16,3.",
       );
       return;
     }
@@ -752,7 +760,7 @@ export function ReviewForm({
                 type="range"
                 min={0}
                 max={20}
-                step={1}
+                step={0.5}
                 // L'état vide a une apparence DISTINCTE de la valeur 0 : sans ça, un curseur
                 // non touché serait indiscernable d'un « je mets zéro », et les deux ne
                 // produisent pas la même note.
@@ -800,7 +808,7 @@ export function ReviewForm({
               type="number"
               min={0}
               max={20}
-              step={1}
+              step={0.5}
               value={manualScore}
               onChange={(e) => setManualScore(e.target.value)}
               aria-label="Note globale sur 20"

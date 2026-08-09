@@ -1,0 +1,3 @@
+ALTER TABLE "jvcritique_review" DROP CONSTRAINT "review_overall_score_range";--> statement-breakpoint
+ALTER TABLE "jvcritique_review" ALTER COLUMN "overallScoreManual" SET DATA TYPE numeric(3, 1);--> statement-breakpoint
+ALTER TABLE "jvcritique_review" ADD CONSTRAINT "review_overall_score_range" CHECK ("jvcritique_review"."overallScoreManual" is null or ("jvcritique_review"."overallScoreManual" between 0 and 20 and ("jvcritique_review"."overallScoreManual" * 2) = floor("jvcritique_review"."overallScoreManual" * 2)));
