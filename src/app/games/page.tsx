@@ -8,7 +8,8 @@ export default async function GamesPage() {
   const games = await listGames();
 
   return (
-    <main className="flex flex-col gap-s5 p-s5">
+    <main className="flex flex-col gap-s4 p-s3">
+      <div className="panneau flex flex-col gap-s5 p-s5">
       <h1 className="font-display text-[25px] font-semibold leading-tight">
         Les jeux
       </h1>
@@ -32,6 +33,7 @@ export default async function GamesPage() {
           ))}
         </ul>
       )}
+      </div>
     </main>
   );
 }

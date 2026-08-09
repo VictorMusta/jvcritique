@@ -21,7 +21,7 @@ export function ThemePicker({ actuel }: { readonly actuel: ThemeId }) {
   const [pending, startTransition] = useTransition();
 
   return (
-    <section className="flex flex-col gap-s4">
+    <section className="panneau flex flex-col gap-s4 p-s5">
       <div className="flex flex-col gap-s2">
         <h2 className="font-display text-[15px] font-semibold">Les couleurs</h2>
         <p className="text-[11px] italic text-text-muted">

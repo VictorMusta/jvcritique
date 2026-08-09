@@ -36,8 +36,8 @@ export default async function ProfilePage() {
     : 0;
 
   return (
-    <main className="flex flex-col gap-s6 p-s5">
-      <header className="flex items-baseline justify-between gap-s4">
+    <main className="flex flex-col gap-s4 p-s3">
+      <header className="panneau flex items-baseline justify-between gap-s4 p-s5">
         <h1 className="font-display text-[25px] font-semibold leading-tight">
           {reader.name}
         </h1>
@@ -51,7 +51,7 @@ export default async function ProfilePage() {
       <ThemePicker actuel={themeValide((await cookies()).get("theme")?.value)} />
 
       <section className="flex flex-col gap-s4">
-        <h2 className="font-display text-[15px] font-semibold">
+        <h2 className="panneau px-s5 py-s4 font-display text-[15px] font-semibold">
           Tes avis {reviews.length > 0 ? `(${reviews.length})` : null}
         </h2>
 

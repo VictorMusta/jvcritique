@@ -58,7 +58,7 @@ export function GameEditForm({
   }
 
   return (
-    <div className="flex flex-col gap-s3 rounded-[10px] border border-border bg-surface p-s4">
+    <div className="flex flex-col gap-s3 rounded-[10px] border border-border bg-surface-raised p-s4">
       <label htmlFor="gameTitle" className="text-[12px] text-text-muted">
         Titre du jeu
       </label>
