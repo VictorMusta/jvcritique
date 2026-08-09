@@ -161,11 +161,48 @@ export default async function ReviewPage({
           et les textes se lisaient sur le damier. */}
       <div className="panneau orne relative flex flex-col gap-s5 p-s5">
       <header className="flex flex-col gap-s2">
-        <h1 className="font-display text-[25px] font-semibold leading-tight">
-          <Link href={`/game/${review.game.id}`} className="hover:text-accent-text">
-            {review.game.title}
-          </Link>
-        </h1>
+        <div className="flex items-start justify-between gap-s4">
+          <h1 className="font-display text-[25px] font-semibold leading-tight">
+            <Link href={`/game/${review.game.id}`} className="hover:text-accent-text">
+              {review.game.title}
+            </Link>
+          </h1>
+
+          {/*
+            EN HAUT À DROITE, bordé, avec une icône. C'était un lien de texte de 12 px posé
+            SOUS la ligne de métadonnées : Victor ne le trouvait pas. Un mot dans un
+            paragraphe se lit comme du texte, pas comme une commande — c'est le cadre et la
+            place qui font qu'une chose s'active.
+
+            Le crayon est celui que la barre de navigation emploie déjà pour « Écrire » :
+            modifier son avis, c'est le même geste sur un texte qui existe déjà.
+
+            L'icône est `aria-hidden` — le mot « Modifier » est juste à côté, et l'annoncer
+            deux fois n'apporterait rien à qui écoute la page.
+          */}
+          {isAuthor ? (
+            <Link
+              href={`/review/${review.id}/edit`}
+              className="flex shrink-0 items-center gap-s2 rounded-[8px] border border-accent px-s4 py-s2 text-[12px] font-semibold text-accent-text hover:bg-accent hover:text-on-accent"
+            >
+              <svg
+                width="13"
+                height="13"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M12 20h9" />
+                <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+              </svg>
+              Modifier
+            </Link>
+          ) : null}
+        </div>
         <p className="text-[12px] text-text-muted">
           par {review.author.name ?? "Quelqu'un"}
           {playtime.length > 0 ? <> · {playtime.join(" · ")}</> : null}
@@ -183,14 +220,6 @@ export default async function ReviewPage({
             </>
           ) : null}
         </p>
-        {isAuthor ? (
-          <Link
-            href={`/review/${review.id}/edit`}
-            className="self-start text-[12px] font-semibold text-accent-text"
-          >
-            Modifier
-          </Link>
-        ) : null}
       </header>
 
       {author ? (
