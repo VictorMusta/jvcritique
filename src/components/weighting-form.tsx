@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 import { DOMAIN_KEYS, type DomainKey, type Weighting } from "~/domain/types";
 import { bearingHints, domainLabels } from "~/messages/fr";
 import { saveWeightingAction } from "~/server/actions/weighting";
+import { useSliderGesture } from "./use-slider-gesture";
 
 /**
  * Réglage de la Pondération — FR-2.
@@ -26,6 +27,9 @@ export function WeightingForm({ initial }: { readonly initial: Weighting }) {
 
   const [pending, startTransition] = useTransition();
   const [feedback, setFeedback] = useState<string | null>(null);
+
+  // Un seul exemplaire pour les sept curseurs — voir le crochet pour le pourquoi.
+  const gesture = useSliderGesture();
 
   function save() {
     setFeedback(null);
@@ -74,12 +78,15 @@ export function WeightingForm({ initial }: { readonly initial: Weighting }) {
               max={100}
               step={5}
               value={values[domain]}
-              onChange={(event) =>
-                setValues((previous) => ({
-                  ...previous,
-                  [domain]: Number(event.target.value),
-                }))
-              }
+              {...gesture.touchHandlers}
+              onChange={(event) => {
+                const brut = Number(event.target.value);
+                // Même arbitrage que sur le formulaire de rédaction : sept curseurs de
+                // 48 px rendaient le profil impossible à faire défiler au pouce.
+                gesture.handleChange(() =>
+                  setValues((previous) => ({ ...previous, [domain]: brut })),
+                );
+              }}
             />
           </div>
         ))}
