@@ -15,7 +15,7 @@
   --color-bg: #171310;
   --color-surface: #221b16;
   --color-surface-raised: #2c231c;
-  --color-border: #3a2e24;
+  --color-border: #7a634a;
   --color-text: #efe3d0;
   --color-text-muted: #a8937a;
   --color-accent: #c98a3c;
@@ -23,17 +23,28 @@
   --color-score-reader: #86b79a;
   --color-spoiler-mask: #2c231c;
   --color-positive: #7fa86b;
-  --color-negative: #b4553f;
+  --color-negative: #e5907a;
 
   /*
    * Couleur du texte POSÉ SUR l'accent — bouton primaire.
    *
-   * Elle ne se déduit pas de l'accent : en mode sombre le texte est celui du fond, en mode
-   * clair il s'inverse en sombre. La spine le démontre sur Rocket League — texte sombre sur
-   * son bleu donne 4,95 : 1, texte clair donnerait 3,96 : 1 et échouerait le minimum AA.
-   * Sans cette variable, chaque variante claire aurait un bouton illisible.
+   * Elle ne se déduit pas de l'accent : le fond de bouton et le texte qu'il porte doivent
+   * contraster entre eux. Sans cette variable, les variantes claires avaient un bouton
+   * primaire illisible — mesuré à 3,60 : 1 sur Potion Craft clair, sous le minimum AA.
    */
   --color-on-accent: #171310;
+
+  /*
+   * ACCENT DESTINÉ AU TEXTE, distinct de l'accent de marque.
+   *
+   * L'accent sert deux rôles incompatibles en mode clair : fond de bouton, où il doit être
+   * vif, et couleur de lien, où il doit être lisible sur du clair. Les mesurer a révélé
+   * l'ampleur du problème — l'orange d'Overwatch en texte donnait 1,95 : 1, soit un lien
+   * pratiquement invisible.
+   *
+   * En mode sombre les deux se confondent ; en mode clair, celui-ci est assombri.
+   */
+  --color-accent-text: #c98a3c;
 
   --font-display: var(--font-fraunces), Georgia, serif;
   --font-sans: var(--font-inter), system-ui, sans-serif;
@@ -56,203 +67,209 @@
 /*
  * LES DIX VARIANTES (FR-20).
  *
- * `spoiler-mask` vaut toujours `surface-raised` de la même variante et du même mode — règle
- * de la spine, respectée ci-dessous sans exception.
+ * Générées depuis les palettes dont chaque paire de contraste a été MESURÉE — texte sur
+ * fond, texte atténué, accent de lien, texte du bouton sur son fond, notes, bordures. Les
+ * dix passent le minimum AA, la paire la plus serrée du lot étant à 3,00 : 1 sur une
+ * bordure, dont le seuil est 3.
  *
- * `color-scheme` accompagne chaque variante : sans elle, les contrôles natifs — cases à
- * cocher, champs de saisie, barres de défilement — resteraient dessinés dans le mode inverse
- * et trancheraient sur le reste.
+ * Les variantes claires ont été REDESSINÉES : les précédentes partageaient toutes le même
+ * blanc pur et des gris quasi identiques, si bien qu'on ne les distinguait que par une
+ * pastille. Fonds et surfaces sont désormais teintés vers leur univers.
+ *
+ * Chaque variante a son propre bloc, y compris celle par défaut : le bloc racine sert de
+ * défaut au document, un bloc `[data-theme]` sert à teinter un SOUS-ARBRE. Sans lui, une
+ * carte du sélecteur héritait des couleurs ambiantes au lieu des siennes.
+ *
+ * `spoiler-mask` vaut toujours `surface-raised` de la même variante — règle de la spine.
  */
 
-/*
- * --- Potion Craft, sombre ---
- *
- * Répète les valeurs de `@theme`, et ce n'est PAS redondant.
- *
- * Le bloc racine sert de défaut au document entier ; celui-ci sert à teinter un SOUS-ARBRE.
- * Sans lui, `data-theme="potion-dark"` posé sur un élément ne correspondait à aucune règle,
- * et l'élément héritait des couleurs ambiantes — la carte « Potion Craft sombre » du
- * sélecteur s'affichait donc dans le thème courant, seule des cinq à se tromper.
- *
- * Défaut trouvé par Victor à l'œil. Ma vérification portait sur la présence des valeurs, pas
- * sur leur portée : elle annonçait « racine » pour cette variante, ce que j'ai lu comme un
- * état normal alors que c'était précisément le manque.
- */
+/* --- Potion Craft, sombre --- */
 [data-theme="potion-dark"] {
   --color-bg: #171310;
   --color-surface: #221b16;
   --color-surface-raised: #2c231c;
-  --color-border: #3a2e24;
+  --color-border: #7a634a;
   --color-text: #efe3d0;
   --color-text-muted: #a8937a;
   --color-accent: #c98a3c;
+  --color-accent-text: #c98a3c;
   --color-score-author: #efe3d0;
   --color-score-reader: #86b79a;
-  --color-spoiler-mask: #2c231c;
   --color-positive: #7fa86b;
-  --color-negative: #b4553f;
+  --color-negative: #e5907a;
   --color-on-accent: #171310;
+  --color-spoiler-mask: #2c231c;
   color-scheme: dark;
 }
 
 /* --- Potion Craft, clair --- */
 [data-theme="potion-light"] {
-  --color-bg: #f4ede1;
+  --color-bg: #f2e9d8;
   --color-surface: #fbf6ec;
-  --color-surface-raised: #f0e6d6;
-  --color-border: #dccdb6;
+  --color-surface-raised: #ecdfc7;
+  --color-border: #8c7550;
   --color-text: #2a211a;
-  --color-text-muted: #6e5d49;
-  --color-accent: #a86b22;
+  --color-text-muted: #6b5940;
+  --color-accent: #8a5316;
+  --color-accent-text: #7a4a12;
   --color-score-author: #2a211a;
   --color-score-reader: #2f6b4c;
-  --color-spoiler-mask: #f0e6d6;
   --color-positive: #4f7a3e;
   --color-negative: #9b3b27;
-  --color-on-accent: #2a211a;
+  --color-on-accent: #fbf6ec;
+  --color-spoiler-mask: #ecdfc7;
   color-scheme: light;
 }
 
-/* --- League of Legends --- */
+/* --- League of Legends, sombre --- */
 [data-theme="lol-dark"] {
   --color-bg: #0a1428;
   --color-surface: #0f1f38;
   --color-surface-raised: #16294a;
-  --color-border: #1e3a5f;
+  --color-border: #4a6f9e;
   --color-text: #f0e6d2;
   --color-text-muted: #a09b8c;
   --color-accent: #c8aa6e;
+  --color-accent-text: #c8aa6e;
   --color-score-author: #f0e6d2;
   --color-score-reader: #0ac8b9;
-  --color-spoiler-mask: #16294a;
   --color-positive: #4e9e7f;
-  --color-negative: #c4443c;
+  --color-negative: #f08880;
   --color-on-accent: #0a1428;
+  --color-spoiler-mask: #16294a;
   color-scheme: dark;
 }
 
+/* --- League of Legends, clair --- */
 [data-theme="lol-light"] {
-  --color-bg: #f2f4f8;
-  --color-surface: #ffffff;
-  --color-surface-raised: #e8ecf3;
-  --color-border: #c9d2e0;
+  --color-bg: #e4ecf9;
+  --color-surface: #f5f8fd;
+  --color-surface-raised: #d2e0f2;
+  --color-border: #6a83a6;
   --color-text: #0a1428;
-  --color-text-muted: #55637a;
-  --color-accent: #c8aa6e;
+  --color-text-muted: #4b5a75;
+  --color-accent: #7a5f1c;
+  --color-accent-text: #6b5316;
   --color-score-author: #0a1428;
-  /* Le teal d'origine (#0AC8B9) tombait à 1,78 : 1 sur fond clair — inutilisable tel quel. */
-  --color-score-reader: #08665f;
-  --color-spoiler-mask: #e8ecf3;
+  --color-score-reader: #0a5f58;
   --color-positive: #2f6b4c;
   --color-negative: #a33228;
-  --color-on-accent: #0a1428;
+  --color-on-accent: #f5f8fd;
+  --color-spoiler-mask: #d2e0f2;
   color-scheme: light;
 }
 
-/* --- Overwatch --- */
+/* --- Overwatch, sombre --- */
 [data-theme="overwatch-dark"] {
   --color-bg: #14181c;
   --color-surface: #1e2429;
   --color-surface-raised: #272f35;
-  --color-border: #333c44;
+  --color-border: #68757e;
   --color-text: #ffffff;
-  --color-text-muted: #8d9499;
+  --color-text-muted: #a3aaaf;
   --color-accent: #f99e1a;
+  --color-accent-text: #f99e1a;
   --color-score-author: #ffffff;
-  --color-score-reader: #218ffe;
-  --color-spoiler-mask: #272f35;
+  --color-score-reader: #63b0ff;
   --color-positive: #43b581;
-  --color-negative: #e23636;
+  --color-negative: #ff8080;
   --color-on-accent: #14181c;
+  --color-spoiler-mask: #272f35;
   color-scheme: dark;
 }
 
+/* --- Overwatch, clair --- */
 [data-theme="overwatch-light"] {
-  --color-bg: #f4f6f7;
-  --color-surface: #ffffff;
-  --color-surface-raised: #e7ebed;
-  --color-border: #c7cfd3;
+  --color-bg: #fbeedd;
+  --color-surface: #fff8f0;
+  --color-surface-raised: #f4e0c8;
+  --color-border: #9d7442;
   --color-text: #14181c;
-  --color-text-muted: #56626a;
-  --color-accent: #f99e1a;
+  --color-text-muted: #5d5148;
+  --color-accent: #9a5800;
+  --color-accent-text: #8a4f00;
   --color-score-author: #14181c;
   --color-score-reader: #175fa8;
-  --color-spoiler-mask: #e7ebed;
   --color-positive: #1f7a55;
   --color-negative: #c22a2a;
-  --color-on-accent: #14181c;
+  --color-on-accent: #fff8f0;
+  --color-spoiler-mask: #f4e0c8;
   color-scheme: light;
 }
 
-/* --- Rocket League --- */
+/* --- Rocket League, sombre --- */
 [data-theme="rocket-dark"] {
   --color-bg: #06090f;
   --color-surface: #0d1522;
   --color-surface-raised: #132038;
-  --color-border: #17263c;
+  --color-border: #476892;
   --color-text: #e9f2ff;
   --color-text-muted: #7e90a8;
   --color-accent: #0e7bff;
+  --color-accent-text: #0e7bff;
   --color-score-author: #ff8c1a;
   --color-score-reader: #00e0ff;
-  --color-spoiler-mask: #132038;
   --color-positive: #22d07a;
   --color-negative: #ff3b5c;
   --color-on-accent: #06090f;
+  --color-spoiler-mask: #132038;
   color-scheme: dark;
 }
 
+/* --- Rocket League, clair --- */
 [data-theme="rocket-light"] {
-  --color-bg: #f1f4f9;
-  --color-surface: #ffffff;
-  --color-surface-raised: #e4eaf4;
-  --color-border: #c2cee2;
+  --color-bg: #e2edfb;
+  --color-surface: #f4f9ff;
+  --color-surface-raised: #cde0f8;
+  --color-border: #628cc0;
   --color-text: #06090f;
-  --color-text-muted: #4f5d75;
-  --color-accent: #0e7bff;
+  --color-text-muted: #48586f;
+  --color-accent: #0b5bbf;
+  --color-accent-text: #0a51a8;
   --color-score-author: #06090f;
   --color-score-reader: #086673;
-  --color-spoiler-mask: #e4eaf4;
   --color-positive: #157f4f;
   --color-negative: #c7304a;
-  /* Le cas qui a motivé la variable : texte sombre sur ce bleu donne 4,95 : 1, texte clair
-     donnerait 3,96 : 1 et échouerait. */
-  --color-on-accent: #06090f;
+  --color-on-accent: #f4f9ff;
+  --color-spoiler-mask: #cde0f8;
   color-scheme: light;
 }
 
-/* --- Counter-Strike --- */
+/* --- Counter-Strike, sombre --- */
 [data-theme="cs-dark"] {
   --color-bg: #121417;
   --color-surface: #1b1f23;
   --color-surface-raised: #23282d;
-  --color-border: #2a3035;
+  --color-border: #616c76;
   --color-text: #dce3e8;
   --color-text-muted: #8a939b;
   --color-accent: #e8a33d;
+  --color-accent-text: #e8a33d;
   --color-score-author: #dce3e8;
   --color-score-reader: #6c9fd8;
-  --color-spoiler-mask: #23282d;
   --color-positive: #7ba05b;
-  --color-negative: #d24b3e;
+  --color-negative: #f0907f;
   --color-on-accent: #121417;
+  --color-spoiler-mask: #23282d;
   color-scheme: dark;
 }
 
+/* --- Counter-Strike, clair --- */
 [data-theme="cs-light"] {
-  --color-bg: #f3f4f5;
-  --color-surface: #ffffff;
-  --color-surface-raised: #e6e8ea;
-  --color-border: #c6cace;
+  --color-bg: #efe9da;
+  --color-surface: #f9f5ec;
+  --color-surface-raised: #e3dac4;
+  --color-border: #877553;
   --color-text: #121417;
-  --color-text-muted: #565c62;
-  --color-accent: #e8a33d;
+  --color-text-muted: #5a5346;
+  --color-accent: #8a5a08;
+  --color-accent-text: #7a5006;
   --color-score-author: #121417;
-  --color-score-reader: #35648f;
-  --color-spoiler-mask: #e6e8ea;
+  --color-score-reader: #2d567c;
   --color-positive: #4f7a3e;
   --color-negative: #a83a2c;
-  --color-on-accent: #121417;
+  --color-on-accent: #f9f5ec;
+  --color-spoiler-mask: #e3dac4;
   color-scheme: light;
 }
 

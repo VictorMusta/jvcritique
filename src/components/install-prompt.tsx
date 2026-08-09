@@ -61,7 +61,7 @@ export function InstallPrompt() {
           setEvent(null);
         })();
       }}
-      className="rounded-[8px] border border-accent px-s4 py-s2 text-[11px] font-semibold text-accent"
+      className="rounded-[8px] border border-accent px-s4 py-s2 text-[11px] font-semibold text-accent-text"
     >
       Installer l&apos;app
     </button>

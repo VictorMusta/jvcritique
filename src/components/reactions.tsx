@@ -67,7 +67,7 @@ export function Reactions({
                 aria-pressed={active}
                 className={`rounded-full border px-s4 py-s2 text-[12px] transition-colors disabled:opacity-60 ${
                   active
-                    ? "border-accent bg-accent/15 font-semibold text-accent"
+                    ? "border-accent bg-accent/15 font-semibold text-accent-text"
                     : "border-border text-text-muted"
                 }`}
               >

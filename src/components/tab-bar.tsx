@@ -43,7 +43,7 @@ export function TabBar() {
                 href={href}
                 aria-current={active ? "page" : undefined}
                 className={`flex flex-col items-center gap-[2px] py-2 ${
-                  active ? "text-accent" : "text-text-muted"
+                  active ? "text-accent-text" : "text-text-muted"
                 }`}
               >
                 <span aria-hidden className="text-base leading-none">

@@ -65,7 +65,7 @@ export function SpoilerScope({
         <button
           type="button"
           onClick={() => setAllRevealed(true)}
-          className="self-start rounded-[8px] border border-accent px-s4 py-s2 text-[11px] font-semibold text-accent"
+          className="self-start rounded-[8px] border border-accent px-s4 py-s2 text-[11px] font-semibold text-accent-text"
         >
           Tout révéler
         </button>
@@ -107,7 +107,7 @@ function MaskedPassage({
           type="button"
           onClick={() => setLocallyRevealed(true)}
           aria-describedby={warningId}
-          className="rounded-[3px] border border-accent px-s2 text-[11px] font-semibold text-accent"
+          className="rounded-[3px] border border-accent px-s2 text-[11px] font-semibold text-accent-text"
         >
           Révéler
         </button>

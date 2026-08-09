@@ -37,7 +37,7 @@ export default async function PublishPage() {
         <p className="rounded-[8px] border border-accent/40 bg-surface p-s4 text-[12px]">
           Tu n&apos;as pas réglé tes critères, donc la note calculée sera une simple
           moyenne.{" "}
-          <Link href="/profile" className="font-semibold text-accent">
+          <Link href="/profile" className="font-semibold text-accent-text">
             Les régler d&apos;abord
           </Link>{" "}
           prend une minute.
