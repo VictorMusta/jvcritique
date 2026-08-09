@@ -1,4 +1,4 @@
-import { excerptFor } from "~/domain/spoilers/render-for-audience";
+import { discordExcerpt } from "~/domain/spoilers/render-for-audience";
 import { env } from "~/env";
 
 /**
@@ -46,8 +46,12 @@ function baseUrl(): string | null {
  * Un avis publié dont l'annonce échoue reste un avis publié : Discord indisponible, webhook
  * révoqué ou réseau capricieux ne doivent pas transformer une publication réussie en erreur
  * à l'écran. La trace part dans les journaux serveur.
+ *
+ * Rend `true` seulement si Discord a ACCEPTÉ le message. C'est ce que l'appelant marque en
+ * base : un « envoyé » optimiste ferait passer pour annoncés des avis que personne n'a vus,
+ * et aucun rattrapage ne les retrouverait ensuite.
  */
-export async function annoncerAvis(annonce: Annonce): Promise<void> {
+export async function annoncerAvis(annonce: Annonce): Promise<boolean> {
   /*
    * RÈGLE 1 — un avis privé n'est JAMAIS annoncé.
    *
@@ -56,7 +60,7 @@ export async function annoncerAvis(annonce: Annonce): Promise<void> {
    * plus près de l'envoi, plutôt que chez l'appelant — un appelant peut oublier.
    */
   if (annonce.isPrivate) {
-    return;
+    return false;
   }
 
   const url = env.DISCORD_WEBHOOK_URL;
@@ -64,22 +68,23 @@ export async function annoncerAvis(annonce: Annonce): Promise<void> {
   // Sans webhook configuré, la fonctionnalité n'existe simplement pas. Ce n'est pas une
   // panne : c'est un état valide, et c'est le défaut.
   if (!url) {
-    return;
+    return false;
   }
 
   const base = baseUrl();
   const lien = base ? `${base}/review/${annonce.reviewId}` : null;
 
   /*
-   * RÈGLE 2 — l'extrait passe par la fonction d'audience « extrait ».
+   * RÈGLE 2 — les passages masqués RESTENT, masqués.
    *
-   * C'est LE cas pour lequel cette audience a été créée : un robot fabrique un aperçu que
-   * tout un salon voit sans que personne n'ait cliqué. Un spoiler y serait lu par tout le
-   * monde, d'un coup, sans recours. L'ordre parser → retirer → tronquer est respecté par
-   * `excerptFor` : tronquer d'abord couperait la fermeture d'un `||`, le rendrait littéral,
-   * et afficherait le passage en clair.
+   * Discord emploie la même syntaxe que nous, `||texte||`, et le rendu est identique : un
+   * rectangle qu'on découvre au clic. Personne ne lit donc un spoiler sans l'avoir voulu, ce
+   * qui préserve exactement la propriété qu'on cherchait à tenir.
+   *
+   * `discordExcerpt` tronque sur les jetons analysés et jamais sur le texte brut : couper
+   * entre deux `||` perdrait la fermeture, et Discord afficherait la suite EN CLAIR.
    */
-  const extrait = annonce.body ? excerptFor(annonce.body, 280) : null;
+  const extrait = annonce.body ? discordExcerpt(annonce.body, 280) : null;
 
   const note =
     annonce.score === null
@@ -126,8 +131,12 @@ export async function annoncerAvis(annonce: Annonce): Promise<void> {
         reponse.status,
         await reponse.text().catch(() => ""),
       );
+      return false;
     }
+
+    return true;
   } catch (erreur) {
     console.error("[discord] annonce impossible", erreur);
+    return false;
   }
 }

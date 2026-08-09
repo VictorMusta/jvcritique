@@ -1,0 +1,1 @@
+ALTER TABLE "jvcritique_review" ADD COLUMN "announcedAt" timestamp with time zone;

@@ -131,3 +131,95 @@ export function excerptFor(body: string, maxLength: number): string {
 
   return `${lastSpace > maxLength / 2 ? cut.slice(0, lastSpace) : cut}…`;
 }
+
+/**
+ * Aperçu destiné à un salon Discord — les passages masqués RESTENT, masqués.
+ *
+ * Distinct d'`excerptFor`, et pour une raison de fond : Discord sait masquer. Sa syntaxe est
+ * `||texte||`, exactement la nôtre, et le rendu est le même — un rectangle qu'on découvre au
+ * clic. La menace qui justifie `excerptFor` (un aperçu qu'un salon entier voit sans que
+ * personne n'ait cliqué) ne s'applique donc pas ici : le passage arrive couvert. Décision de
+ * Victor, le 9 août 2026, et son argument était meilleur que le mien.
+ *
+ * Ce que cette fonction doit garantir, en revanche, est plus exigeant que de tout retirer.
+ *
+ * 1. **Aucun `||` orphelin.** Tronquer à l'aveugle sur le texte brut couperait la fermeture
+ *    d'un passage, et Discord afficherait la suite EN CLAIR — au moment précis où le message
+ *    est vu par le plus de monde. On tronque donc sur les jetons analysés : un passage masqué
+ *    est soit entier, soit coupé PUIS refermé, jamais laissé ouvert.
+ *
+ * 2. **Réémission, pas recopie.** Notre grammaire connaît des échappements (`\||` vaut un `||`
+ *    littéral) que Discord ignore. Passer le corps brut ferait interpréter à Discord des
+ *    délimiteurs que notre parseur avait déclarés littéraux. On repart donc des jetons.
+ *
+ * 3. **Les barres verticales du texte sont échappées.** Sans ça, deux `|` littéraux voisins
+ *    ouvriraient un masquage côté Discord et avaleraient tout le reste de l'aperçu.
+ */
+export function discordExcerpt(body: string, maxLength: number): string {
+  const segments = parseSpoilers(body);
+
+  // Sous ce seuil, ouvrir un passage masqué ne montrerait qu'un fragment inutile : mieux vaut
+  // s'arrêter avant. Évite aussi le `||||` d'un masquage vidé de son contenu.
+  const MINIMUM_MASQUE = 12;
+
+  const morceaux: string[] = [];
+  let restant = maxLength;
+  let tronque = false;
+
+  for (const segment of segments) {
+    if (restant <= 0) {
+      tronque = true;
+      break;
+    }
+
+    const texte = segment.text.replace(/\s+/g, " ");
+
+    if (segment.kind === "spoiler") {
+      if (restant < MINIMUM_MASQUE) {
+        tronque = true;
+        break;
+      }
+
+      const garde = texte.length <= restant ? texte : couper(texte, restant);
+      tronque ||= garde.length < texte.length;
+      // La fermeture est écrite dans la même expression que l'ouverture : il n'existe aucun
+      // chemin de ce code qui produise l'une sans l'autre.
+      morceaux.push(`||${echapper(garde)}||`);
+      restant -= garde.length;
+      continue;
+    }
+
+    if (texte.length <= restant) {
+      morceaux.push(echapper(texte));
+      restant -= texte.length;
+      continue;
+    }
+
+    morceaux.push(echapper(couper(texte, restant)));
+    restant = 0;
+    tronque = true;
+  }
+
+  const rendu = morceaux.join("").trim();
+
+  return tronque ? `${rendu}…` : rendu;
+}
+
+/** Coupe sur une frontière de mot quand il en reste une raisonnable. */
+function couper(texte: string, budget: number): string {
+  const cut = texte.slice(0, budget);
+  const espace = cut.lastIndexOf(" ");
+
+  return (espace > budget / 2 ? cut.slice(0, espace) : cut).trimEnd();
+}
+
+/**
+ * Neutralise les barres verticales du texte de l'auteur.
+ *
+ * Seul `|` est échappé, et pas le reste de la syntaxe Markdown : c'est le seul caractère dont
+ * l'interprétation par Discord changerait ce qui est MASQUÉ. Qu'un `*` mette un mot en
+ * italique est un défaut d'allure ; qu'un `|` ouvre un masquage est un défaut de sens.
+ */
+function echapper(texte: string): string {
+  return texte.replace(/\|/g, "\\|");
+}

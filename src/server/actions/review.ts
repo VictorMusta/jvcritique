@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { auth } from "~/server/auth";
 import { findOrCreateGame } from "~/server/db/queries/games";
 import { createReview } from "~/server/db/queries/reviews";
+import { markAnnounced } from "~/server/db/queries/announcements";
 import { annoncerAvis } from "~/server/discord";
 import { fail, guard, ok, type Result } from "~/server/result";
 import { reviewInputSchema } from "~/server/validation/review";
@@ -81,7 +82,7 @@ export async function createReviewAction(
      * pondération de l'auteur, qui peut changer : la figer dans un message Discord
      * immuable créerait une valeur périmée qu'aucune invalidation ne pourrait rattraper.
      */
-    await annoncerAvis({
+    const annonce = await annoncerAvis({
       reviewId: outcome.reviewId,
       gameTitle: data.gameTitle,
       authorName: session.user?.name ?? "Quelqu'un",
@@ -89,6 +90,12 @@ export async function createReviewAction(
       body: data.whyRecommend,
       isPrivate: data.isPrivate,
     });
+
+    // Marqué SEULEMENT si Discord a accepté. Un avis dont l'annonce a échoué reste « en
+    // attente » et sera repris par le rattrapage, au lieu d'être perdu en silence.
+    if (annonce) {
+      await markAnnounced(outcome.reviewId);
+    }
 
     // Invalidation déclarée route par route (INV-2, R-D3). Le cache de route de Next est
     // actif par défaut : sans ces appels, le nouvel avis n'apparaîtrait pas dans le fil.
