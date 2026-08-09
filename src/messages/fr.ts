@@ -42,7 +42,20 @@ export const domainLabels = {
   artDirection: "Direction artistique et graphismes",
   soundtrack: "Bande-son",
   pacing: "Durée de vie et rythme",
-  technical: "Technique",
+  /*
+   * « Technique » supposait qu'on sache ce que le mot recouvre. Victor : « il faut changer
+   * ça en autre chose qui signifie l'absence de bug et d'optimisation, mais pour les mortels
+   * qui ne sont pas dev de jeu vidéo ».
+   *
+   * Les deux mots portent les deux moitiés, et chacun est du français courant. « Fluidité »
+   * est exactement son exemple — Final Fantasy XII qui rame passé vingt unités à l'écran.
+   * « Finition » couvre les bugs, les plantages et les bords non repassés.
+   *
+   * Seule L'ÉTIQUETTE change. La clé `technical` reste : elle est dans un type énuméré
+   * PostgreSQL, et la toucher imposerait une migration à toutes les notes déjà saisies pour
+   * un changement qui n'est que d'affichage.
+   */
+  technical: "Fluidité et finition",
 } as const;
 
 /**
