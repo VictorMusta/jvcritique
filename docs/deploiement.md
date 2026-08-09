@@ -70,6 +70,12 @@ AUTH_SECRET=<sortie de `npx auth secret`>
 AUTH_DISCORD_ID=<identifiant de l'application Discord>
 AUTH_DISCORD_SECRET=<secret de l'application Discord>
 AUTH_URL=https://jvcritique.duckdns.org/api/auth
+
+# Facultatif — identifiants DISCORD des administrateurs, séparés par des virgules.
+# Sans cette ligne, il n'y a aucun administrateur, ce qui est un état valide.
+# Se récupère dans Discord : mode développeur activé, clic droit sur son profil,
+# « Copier l'identifiant ». Ce n'est PAS l'identifiant interne du compte jvcritiqué.
+ADMIN_DISCORD_IDS=
 ```
 
 Restreindre les droits, puisqu'il contient des secrets :

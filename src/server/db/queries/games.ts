@@ -59,6 +59,53 @@ export async function findOrCreateGame(
   return raced[0].id;
 }
 
+/**
+ * Résultat d'une modification de Jeu.
+ *
+ * Une union plutôt qu'un booléen : « le jeu n'existe pas » et « ce titre est déjà pris » ne
+ * se corrigent pas de la même façon, et l'utilisateur a besoin de savoir lequel des deux
+ * s'est produit.
+ */
+export type UpdateGameOutcome = "ok" | "notFound" | "duplicate";
+
+/**
+ * Corrige le titre et le lien Steam d'un Jeu.
+ *
+ * Renommer un Jeu n'est PAS la même chose que changer le jeu dont parle un avis. Le second
+ * reviendrait à écrire un autre avis, et reste interdit. Le premier est de l'entretien de
+ * catalogue : il corrige une donnée partagée sans toucher aux mots de personne. J'avais
+ * confondu les deux en bloquant le champ dans le formulaire de modification, et une faute
+ * de frappe dans un titre est devenue incorrigible — trouvée à l'usage par une amie de
+ * Victor le jour du lancement.
+ *
+ * Le conflit d'unicité est INTERCEPTÉ plutôt que laissé remonter : l'index porte sur
+ * `lower(title)`, donc renommer « Valheim » en « valheim » alors qu'un autre existe échoue,
+ * et une exception brute donnerait un message générique là où on peut être précis.
+ */
+export async function updateGame(
+  id: string,
+  input: { title: string; steamUrl: string | null },
+): Promise<UpdateGameOutcome> {
+  try {
+    const updated = await db
+      .update(games)
+      .set({ title: input.title.trim(), steamUrl: input.steamUrl })
+      .where(eq(games.id, id))
+      .returning({ id: games.id });
+
+    return updated.length > 0 ? "ok" : "notFound";
+  } catch (error) {
+    // 23505 = violation de contrainte d'unicité côté PostgreSQL.
+    const code = (error as { code?: string })?.code;
+
+    if (code === "23505") {
+      return "duplicate";
+    }
+
+    throw error;
+  }
+}
+
 export async function getGameById(id: string) {
   const rows = await db.select().from(games).where(eq(games.id, id)).limit(1);
 
