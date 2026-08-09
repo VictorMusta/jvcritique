@@ -29,9 +29,17 @@ export type ImageGalerie = {
 export function GameGallery({
   images,
   gameTitle,
+  couverture,
 }: {
   readonly images: readonly ImageGalerie[];
   readonly gameTitle: string;
+  /**
+   * Image publiée par Steam, employée SEULEMENT quand personne n'a encore déposé de capture.
+   *
+   * Une vraie capture l'emporte toujours : elle vient de quelqu'un qui a joué, la jaquette
+   * vient du service de vente. La première dit quelque chose, la seconde comble un vide.
+   */
+  readonly couverture?: string | null;
 }) {
   const piste = useRef<HTMLDivElement>(null);
   const [index, setIndex] = useState(0);
@@ -53,7 +61,26 @@ export function GameGallery({
   }, []);
 
   if (images.length === 0) {
-    return null;
+    if (!couverture) {
+      return null;
+    }
+
+    /*
+     * Pas de carrousel pour une image seule : ni flèches, ni compteur, ni piste défilante.
+     * Et AUCUN nom d'auteur — c'est le point qui a écarté la première idée, qui était de
+     * déposer ces couvertures dans les avis existants. La galerie affiche « par Untel » sur
+     * chaque capture : une jaquette y aurait été attribuée à quelqu'un qui ne l'a pas prise.
+     */
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={couverture}
+        alt=""
+        loading="eager"
+        decoding="async"
+        className="aspect-video w-full bg-surface-raised object-cover"
+      />
+    );
   }
 
   return (

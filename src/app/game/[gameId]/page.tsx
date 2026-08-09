@@ -9,6 +9,7 @@ import { isAdmin } from "~/server/auth/is-admin";
 import { getGameById } from "~/server/db/queries/games";
 import { getReviewsByGame } from "~/server/db/queries/reviews";
 import { synthetiserJeu } from "~/domain/scoring/synthese-jeu";
+import { couvertureSteam } from "~/domain/steam";
 import { getReaderContext } from "~/server/reader";
 
 export const dynamic = "force-dynamic";
@@ -80,7 +81,16 @@ export default async function GamePage({
       <header className="panneau flex flex-col overflow-hidden">
         {/* HORS du rembourrage, et c'est tout l'intérêt : la galerie occupe la largeur du
             panneau sans qu'aucune marge n'ait à être annulée. */}
-        <GameGallery images={captures} gameTitle={game.title} />
+        <GameGallery
+          images={captures}
+          gameTitle={game.title}
+          /*
+           * Repli quand aucune capture n'existe encore. Un jeu sans lien Steam n'en a pas —
+           * et c'est réparable en deux gestes : un administrateur colle le lien sur la fiche,
+           * la couverture apparaît. Aucune image n'est copiée nulle part.
+           */
+          couverture={couvertureSteam(game.steamUrl)}
+        />
 
         <div className="flex flex-col gap-s3 p-s5">
         <h1 className="font-display text-[25px] font-semibold leading-tight">
