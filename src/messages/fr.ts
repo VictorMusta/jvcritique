@@ -59,6 +59,26 @@ export const domainLabels = {
 } as const;
 
 /**
+ * Formes abrégées, pour la grille compacte des notes de domaine.
+ *
+ * Elles n'apparaissent QUE là où la place manque, et jamais seules : le nom complet reste
+ * dans l'attribut `title` et dans l'étiquette lue par les lecteurs d'écran. Une abréviation
+ * qui remplacerait partout le nom entier rendrait le glossaire du produit illisible.
+ *
+ * Quatre domaines sur sept gardent leur nom : abréger ce qui tient déjà ne ferait
+ * qu'appauvrir.
+ */
+export const domainLabelsCourts = {
+  gameplay: "Gameplay",
+  story: "Histoire",
+  atmosphere: "Ambiance",
+  artDirection: "Direction art.",
+  soundtrack: "Bande-son",
+  pacing: "Durée de vie",
+  technical: "Fluidité",
+} as const;
+
+/**
  * Mentions qui énoncent une RÈGLE DE CALCUL.
  *
  * `DESIGN.md` les distingue des mentions de confort : elles s'affichent en pleine couleur

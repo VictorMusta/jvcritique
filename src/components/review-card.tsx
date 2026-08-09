@@ -12,7 +12,7 @@ import type { Weighting } from "~/domain/types";
 import type { ReviewForDisplay } from "~/server/db/queries/reviews";
 import { DomainBars } from "./domain-bars";
 import { ScorePair } from "./score-pair";
-import { SpoilerText } from "./spoiler-text";
+import { ReviewBody } from "./review-body";
 
 type Props = {
   readonly review: ReviewForDisplay;
@@ -72,29 +72,29 @@ export function ReviewCard({
   const playtime = playtimeLabel(review.playtimeHours, review.completed);
 
   /*
-   * L'APERÇU PREND LE PREMIER CHAMP REMPLI, pas « pourquoi je le recommande ».
+   * TOUS LES CHAMPS REMPLIS, dans l'ordre du formulaire.
    *
-   * Hugo a publié un avis sur un jeu qu'il ne recommande PAS : il avait tout écrit dans
-   * « pourquoi je ne le recommande pas », et sa carte apparaissait vide dans le fil. Le
-   * produit supposait qu'un avis se résume par sa recommandation — c'est faux pour la moitié
-   * des avis qu'on a envie d'écrire.
+   * Le premier sert d'aperçu, les autres apparaissent au clic sur « lire la suite ».
    *
-   * L'ordre suit celui du formulaire, et l'ÉTIQUETTE SUIT LE CHAMP : sans elle, un extrait
-   * de « ce que j'ai détesté » se lirait comme une recommandation, ce qui inverserait le sens
-   * de l'avis dans le fil.
+   * L'ordre du formulaire est conservé volontairement : c'est celui dans lequel l'auteur a
+   * pensé son avis, et le réordonner ferait lire « ce que j'ai détesté » avant « pourquoi je
+   * le recommande » sur un avis enthousiaste.
+   *
+   * Le premier champ rempli devient l'aperçu QUEL QU'IL SOIT — un avis sur un jeu qu'on ne
+   * recommande pas apparaissait vide dans le fil, parce que seule la recommandation était
+   * regardée.
    */
-  const apercu = (
+  const champs = (
     [
       ["Pourquoi je le recommande", review.whyRecommend],
       ["Pourquoi je ne le recommande pas", review.whyNotRecommend],
       ["Ce qui m'a manqué", review.whatMissed],
       ["Ce que j'ai détesté", review.whatHated],
     ] as const
-  ).reduce<{ label: string; body: string } | null>(
-    (trouve, [label, body]) =>
-      trouve ?? (body ? { label, body } : null),
-    null,
+  ).flatMap(([label, body]) =>
+    body ? [{ label, segments: renderForAudience(body, audience) }] : [],
   );
+
 
   return (
     /*
@@ -166,27 +166,7 @@ export function ReviewCard({
         </Link>
       ) : null}
 
-      {apercu !== null ? (
-        <div className="flex flex-col gap-[2px]">
-          <span className="text-[9px] font-bold uppercase tracking-[0.06em] text-text-muted">
-            {apercu.label}
-          </span>
-          {/*
-            L'extrait passe par la fonction d'audience, comme n'importe quel texte d'avis.
-            C'est ici que l'oubli aurait été le plus grave : le fil affiche cet extrait sans
-            qu'on ait rien demandé, donc un spoiler non filtré serait vu par tout le monde,
-            immédiatement, sans même ouvrir l'avis.
-
-            line-clamp dans le fil : la lecture longue a lieu sur la page de l'avis.
-          */}
-          <p className="line-clamp-3 text-[13px] leading-relaxed">
-            <SpoilerText
-              segments={renderForAudience(apercu.body, audience)}
-              gameTitle={review.game.title}
-            />
-          </p>
-        </div>
-      ) : null}
+      <ReviewBody champs={champs} gameTitle={review.game.title} />
 
       <Link
         href={`/review/${review.id}`}
