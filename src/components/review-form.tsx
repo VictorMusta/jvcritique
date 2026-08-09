@@ -13,6 +13,7 @@ import {
 import { bearingHints, comfortHints, domainLabels } from "~/messages/fr";
 import { createReviewAction } from "~/server/actions/review";
 import { updateReviewAction } from "~/server/actions/review-edit";
+import { useSliderGesture } from "./use-slider-gesture";
 
 /**
  * Les trois états d'une Note de domaine, tenus explicitement dans l'état du formulaire.
@@ -93,6 +94,10 @@ export function ReviewForm({
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const editing = initial !== undefined;
+
+  // Un seul exemplaire pour les sept curseurs : il n'y a qu'un doigt à la fois, et les
+  // règles des crochets interdisent d'en appeler un dans une boucle.
+  const gesture = useSliderGesture();
 
   const [gameTitle, setGameTitle] = useState(initial?.gameTitle ?? "");
   const [steamUrl, setSteamUrl] = useState(initial?.steamUrl ?? "");
@@ -350,7 +355,13 @@ export function ReviewForm({
                 data-empty={entry.state !== "rated"}
                 disabled={entry.state === "notApplicable"}
                 value={entry.value}
-                onChange={(e) => onSliderChange(domain, e.target.value)}
+                {...gesture.touchHandlers}
+                onChange={(e) => {
+                  const brut = e.target.value;
+                  // Passe par le crochet : un contact qui s'avère être un défilement ne
+                  // doit pas déplacer la note.
+                  gesture.handleChange(() => onSliderChange(domain, brut));
+                }}
               />
             </div>
           );
