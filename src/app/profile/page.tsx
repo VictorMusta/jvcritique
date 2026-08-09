@@ -1,3 +1,4 @@
+import { AnnounceBacklog } from "~/components/announce-backlog";
 import { SignInButton, SignOutButton } from "~/components/auth-buttons";
 import { ReviewCard } from "~/components/review-card";
 import { ThemePicker } from "~/components/theme-picker";
@@ -5,6 +6,8 @@ import { WeightingForm } from "~/components/weighting-form";
 import { themeValide } from "~/domain/themes";
 import { cookies } from "next/headers";
 import { getReviewsByAuthor } from "~/server/db/queries/reviews";
+import { isAdmin } from "~/server/auth/is-admin";
+import { countPendingAnnouncements } from "~/server/db/queries/announcements";
 import { getReaderContext } from "~/server/reader";
 
 export const dynamic = "force-dynamic";
@@ -26,6 +29,12 @@ export default async function ProfilePage() {
 
   const reviews = await getReviewsByAuthor(reader.userId, reader.userId);
 
+  // Le compte n'est calculé que pour un administrateur : personne d'autre ne peut agir
+  // dessus, et l'afficher exposerait une information d'exploitation à qui n'en fait rien.
+  const enAttente = (await isAdmin(reader.userId))
+    ? await countPendingAnnouncements()
+    : 0;
+
   return (
     <main className="flex flex-col gap-s6 p-s5">
       <header className="flex items-baseline justify-between gap-s4">
@@ -34,6 +43,8 @@ export default async function ProfilePage() {
         </h1>
         <SignOutButton />
       </header>
+
+      <AnnounceBacklog enAttente={enAttente} />
 
       <WeightingForm initial={reader.weighting} />
 

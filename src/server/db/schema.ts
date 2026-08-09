@@ -232,6 +232,15 @@ export const reviews = createTable(
      */
     isPrivate: d.boolean().notNull().default(false),
 
+    /**
+     * Date d'annonce dans le salon Discord, ou `null` si jamais annoncé.
+     *
+     * Marqueur d'IDEMPOTENCE, et c'est sa seule raison d'être. Sans lui, relancer le
+     * rattrapage republierait tout — et un message Discord ne se reprend pas : cinq personnes
+     * l'ont déjà lu. Une colonne vaut mieux qu'une consigne de ne cliquer qu'une fois.
+     */
+    announcedAt: d.timestamp({ mode: "date", withTimezone: true }),
+
     /** Temps de jeu en heures, entier, sans borne haute (FR-22). */
     playtimeHours: d.integer(),
     /** Jeu terminé — indépendant du temps de jeu : 40 h sans finir, 6 h et fini. */
