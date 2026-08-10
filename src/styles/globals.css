@@ -471,6 +471,41 @@ body::after {
 
 
 /*
+ * LIEN EXPLICITE — un soulignement et un chevron.
+ *
+ * Signalé par Victor : « on voit pas qu'on peut cliquer sur le pseudo des gens, le titre des
+ * jeux ». C'était vrai — ils n'avaient qu'un changement de couleur au survol, invisible sur
+ * un téléphone où il n'y a pas de survol du tout.
+ *
+ * Le soulignement est l'affordance universelle du web, et le chevron répond à la demande d'un
+ * caractère explicite. Les deux plutôt qu'un seul : le soulignement se remarque en lisant, le
+ * chevron se remarque en regardant.
+ *
+ * `::after` et non un caractère dans le texte : il ne doit pas être sélectionné quand on copie
+ * un titre de jeu, ni lu à voix haute par un lecteur d'écran, qui annonce déjà « lien ».
+ */
+.lien {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+  text-decoration-color: color-mix(in srgb, currentColor 40%, transparent);
+}
+
+.lien::after {
+  /* Une espace fine puis un chevron, écrits en clair : les séquences d'échappement CSS
+     ressortaient telles quelles à travers la chaîne de compilation. */
+  content: " ›";
+  /* Un chevron à taille réduite : à taille égale il pèserait autant qu'un mot. */
+  font-size: 0.85em;
+  opacity: 0.65;
+}
+
+.lien:hover {
+  text-decoration-color: currentColor;
+  color: var(--color-accent-text);
+}
+
+/*
  * PANNEAU — la surface opaque sous tout bloc de texte.
  *
  * Regression signalee par Victor le 9 aout 2026, captures a l'appui : sur la page d'un avis
