@@ -2,6 +2,9 @@
 
 import { createContext, useContext, useId, useMemo, useState } from "react";
 
+import Link from "next/link";
+
+import { parseMentions } from "~/domain/mentions";
 import type { RenderedSegment } from "~/domain/spoilers/render-for-audience";
 
 /**
@@ -78,9 +81,11 @@ export function SpoilerScope({
 function MaskedPassage({
   text,
   gameTitle,
+  mentions,
 }: {
   readonly text: string;
   readonly gameTitle: string;
+  readonly mentions: TitresMentionnes;
 }) {
   const scope = useContext(SpoilerScopeContext);
   const [locallyRevealed, setLocallyRevealed] = useState(false);
@@ -93,7 +98,14 @@ function MaskedPassage({
     // Après révélation, le contenu réel entre dans l'arbre d'accessibilité et devient
     // sélectionnable comme n'importe quel texte.
     return (
-      <span className="rounded-[3px] bg-surface-raised px-[3px]">{text}</span>
+      /*
+       * Les mentions valent AUSSI dans un passage révélé : le texte est le même, seul le
+       * moment où il devient visible change. Les traiter ici et pas là aurait fait qu'un jeu
+       * mentionné dans un spoiler ne serait jamais cliquable.
+       */
+      <span className="rounded-[3px] bg-surface-raised px-[3px]">
+        <AvecMentions texte={text} mentions={mentions} />
+      </span>
     );
   }
 
@@ -160,19 +172,82 @@ function MaskedPassage({
  * une chaîne brute d'avis, ce qui rend impossible de l'appeler en contournant le filtrage
  * (frontière 4).
  */
+/**
+ * Titres des jeux mentionnés, par identifiant.
+ *
+ * Résolus par le serveur au moment du rendu, jamais stockés dans le texte : un titre corrigé
+ * par un administrateur doit se répercuter partout, y compris dans un commentaire écrit il y
+ * a trois mois.
+ */
+export type TitresMentionnes = Readonly<Record<string, string>>;
+
+/**
+ * Rend le texte d'un segment en transformant les mentions en liens.
+ *
+ * LES MENTIONS SONT TRAITÉES APRÈS LES SPOILERS, jamais avant, et l'ordre est une propriété
+ * de sécurité : le texte reçu ici a déjà traversé la fonction d'audience. Une mention à
+ * l'intérieur d'un passage masqué reste donc masquée — elle ne devient un lien qu'au moment
+ * où le passage est révélé.
+ *
+ * Un identifiant inconnu — jeu supprimé — s'affiche comme du texte brut plutôt que comme un
+ * lien mort. Le commentaire perd un lien, il ne gagne pas une erreur.
+ */
+function AvecMentions({
+  texte,
+  mentions,
+}: {
+  readonly texte: string;
+  readonly mentions: TitresMentionnes;
+}) {
+  const parties = parseMentions(texte);
+
+  if (parties.length === 1 && parties[0]?.kind === "texte") {
+    return <>{parties[0].text}</>;
+  }
+
+  return (
+    <>
+      {parties.map((partie, index) => {
+        if (partie.kind === "texte") {
+          return <span key={index}>{partie.text}</span>;
+        }
+
+        const titre = mentions[partie.gameId];
+
+        if (titre === undefined) {
+          return <span key={index}>@?</span>;
+        }
+
+        return (
+          <Link key={index} href={`/game/${partie.gameId}`} className="lien">
+            @{titre}
+          </Link>
+        );
+      })}
+    </>
+  );
+}
+
 export function SpoilerText({
   segments,
   gameTitle,
+  mentions = {},
 }: {
   readonly segments: readonly RenderedSegment[];
   readonly gameTitle: string;
+  /** Titres des jeux mentionnés. Vide sur les surfaces qui n'en acceptent pas. */
+  readonly mentions?: TitresMentionnes;
 }) {
   return (
     <span className="whitespace-pre-line">
       {segments.map((segment, index) => {
         switch (segment.kind) {
           case "text":
-            return <span key={index}>{segment.text}</span>;
+            return (
+              <span key={index}>
+                <AvecMentions texte={segment.text} mentions={mentions} />
+              </span>
+            );
 
           case "revealed":
             // Audience auteur. Le passage s'affiche, discrètement souligné pour rappeler
@@ -183,13 +258,18 @@ export function SpoilerText({
                 title="Masqué pour les autres"
                 className="rounded-[3px] bg-surface-raised px-[3px] underline decoration-accent decoration-dotted underline-offset-2"
               >
-                {segment.text}
+                <AvecMentions texte={segment.text} mentions={mentions} />
               </span>
             );
 
           case "spoiler":
             return (
-              <MaskedPassage key={index} text={segment.text} gameTitle={gameTitle} />
+              <MaskedPassage
+                key={index}
+                text={segment.text}
+                gameTitle={gameTitle}
+                mentions={mentions}
+              />
             );
 
           case "redacted":

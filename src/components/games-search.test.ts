@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { comparable } from "./games-search";
+import { comparable } from "~/domain/comparable";
 
 /**
  * La seule partie non triviale de la recherche : rendre deux titres comparables.

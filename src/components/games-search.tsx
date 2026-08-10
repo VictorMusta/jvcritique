@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
+import { comparable } from "~/domain/comparable";
+
 /**
  * Liste des jeux avec un champ de recherche — demandé par Victor le 9 août 2026.
  *
@@ -17,20 +19,6 @@ import { useMemo, useState } from "react";
  * recherche qu'il faudrait changer d'abord, c'est la liste elle-même.
  */
 
-/**
- * Rend une chaîne comparable : sans accents, sans casse.
- *
- * Sans ça, chercher « pokemon » ne trouverait pas « Pokémon », et « zelda » raterait un titre
- * saisi avec une majuscule accentuée. C'est le défaut le plus courant d'une recherche en
- * français, et il fait conclure que le jeu n'est pas dans le catalogue — donc republier un
- * doublon.
- */
-export function comparable(valeur: string): string {
-  return valeur
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
-    .toLowerCase();
-}
 
 export function GamesSearch({
   games,
