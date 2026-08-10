@@ -35,7 +35,15 @@ export function comparable(valeur: string): string {
 export function GamesSearch({
   games,
 }: {
-  readonly games: readonly { id: string; title: string; nbAvis: number }[];
+  readonly games: readonly {
+    id: string;
+    title: string;
+    nbAvis: number;
+    /** Le lecteur a écrit un avis sur ce jeu. */
+    jaiUnAvis: boolean;
+    /** Et il l'a marqué comme terminé. */
+    jaiTermine: boolean;
+  }[];
 }) {
   const [recherche, setRecherche] = useState("");
 
@@ -87,7 +95,35 @@ export function GamesSearch({
                 href={`/game/${game.id}`}
                 className="flex items-baseline justify-between gap-s4 rounded-[8px] border border-border bg-surface-raised px-s4 py-s3 hover:border-accent"
               >
-                <span className="font-display text-[15px]">{game.title}</span>
+                <span className="flex min-w-0 items-baseline gap-s2">
+                  <span className="truncate font-display text-[15px]">{game.title}</span>
+                  {/*
+                    LA COURONNE REMPLACE LA COCHE, elle ne s'y ajoute pas : terminer un jeu
+                    suppose d'en avoir écrit l'avis, donc afficher les deux répéterait la même
+                    information. Et deux pictogrammes collés se liraient comme un état à part.
+
+                    Le titre porte le sens en clair — un pictogramme seul n'est jamais une
+                    étiquette, et rien ne dit à quelqu'un qui découvre la page ce qu'une
+                    couronne signifie ici.
+                  */}
+                  {game.jaiTermine ? (
+                    <span
+                      className="shrink-0 text-[12px] text-accent-text"
+                      title="Tu l'as terminé"
+                    >
+                      <span aria-hidden>♛</span>
+                      <span className="sr-only">Tu l’as terminé</span>
+                    </span>
+                  ) : game.jaiUnAvis ? (
+                    <span
+                      className="shrink-0 text-[12px] text-accent-text"
+                      title="Tu as écrit ton avis"
+                    >
+                      <span aria-hidden>✓</span>
+                      <span className="sr-only">Tu as écrit ton avis</span>
+                    </span>
+                  ) : null}
+                </span>
                 {/* Le nombre d'avis, demandé par Victor : c'est ce qui distingue un jeu dont
                     le groupe a débattu d'un jeu que personne n'a repris. */}
                 <span className="tnum shrink-0 text-[11px] text-text-muted">

@@ -1,10 +1,14 @@
 import { GamesSearch } from "~/components/games-search";
 import { listGames } from "~/server/db/queries/games";
+import { getReaderContext } from "~/server/reader";
 
 export const dynamic = "force-dynamic";
 
 export default async function GamesPage() {
-  const games = await listGames();
+  // Les marqueurs personnels dépendent du lecteur : la coche et la couronne ne parlent que
+  // de SES avis.
+  const reader = await getReaderContext();
+  const games = await listGames(reader.userId);
 
   return (
     <main className="flex flex-col gap-s4 p-s3">
@@ -29,6 +33,8 @@ export default async function GamesPage() {
               id: game.id,
               title: game.title,
               nbAvis: game.nbAvis,
+              jaiUnAvis: game.jaiUnAvis,
+              jaiTermine: game.jaiTermine,
             }))}
           />
         )}
