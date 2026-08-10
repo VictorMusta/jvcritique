@@ -1,4 +1,4 @@
-import { asc, count, eq, sql } from "drizzle-orm";
+import { asc, count, eq, inArray, sql } from "drizzle-orm";
 
 import { db } from "../index";
 import { games, reviews } from "../schema";
@@ -181,4 +181,29 @@ export async function listGames(viewerId: string | null = null) {
     .leftJoin(reviews, eq(reviews.gameId, games.id))
     .groupBy(games.id)
     .orderBy(asc(games.title));
+}
+
+/**
+ * Titres de plusieurs jeux, par identifiant — pour résoudre les mentions à l'affichage.
+ *
+ * Un seul appel pour toute une page : un fil de commentaires qui interrogerait la base par
+ * mention donnerait autant de requêtes que de mentions. C'est la contrainte qui avait déjà
+ * imposé le chargement groupé des pondérations.
+ *
+ * Un identifiant absent du résultat — jeu supprimé — n'est pas une erreur : l'affichage rend
+ * alors du texte au lieu d'un lien mort.
+ */
+export async function titresDeJeux(
+  ids: readonly string[],
+): Promise<Record<string, string>> {
+  if (ids.length === 0) {
+    return {};
+  }
+
+  const lignes = await db
+    .select({ id: games.id, title: games.title })
+    .from(games)
+    .where(inArray(games.id, [...ids]));
+
+  return Object.fromEntries(lignes.map((l) => [l.id, l.title]));
 }

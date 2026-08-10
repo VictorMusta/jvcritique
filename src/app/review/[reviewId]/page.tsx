@@ -17,7 +17,9 @@ import {
   renderForAudience,
 } from "~/domain/spoilers/render-for-audience";
 import { isAdmin } from "~/server/auth/is-admin";
+import { extraireMentions } from "~/domain/mentions";
 import { getComments } from "~/server/db/queries/comments";
+import { listGames, titresDeJeux } from "~/server/db/queries/games";
 import { getReviewById } from "~/server/db/queries/reviews";
 import { todosParmi } from "~/server/db/queries/todos";
 import { getReaderContext } from "~/server/reader";
@@ -141,7 +143,25 @@ export default async function ReviewPage({
    * se calcule par rapport à l'auteur DU COMMENTAIRE, pas à celui de l'avis — c'est lui qui a
    * écrit le passage masqué.
    */
-  const comments: CommentForDisplay[] = (await getComments(review.id)).map(
+  const commentairesBruts = await getComments(review.id);
+
+  /*
+   * Les titres des jeux mentionnés sont résolus EN UNE REQUÊTE pour tout le fil, et à
+   * l'affichage plutôt qu'à l'écriture : un titre corrigé par un administrateur se répercute
+   * ainsi dans les commentaires déjà publiés.
+   */
+  const mentions = await titresDeJeux(
+    extraireMentions(commentairesBruts.map((c) => c.body)),
+  );
+
+  // Le catalogue sert d'autocomplétion. Il naît des avis : un jeu dont personne n'a parlé n'y
+  // figure pas, donc ne peut pas être mentionné — c'est la règle que Victor a posée.
+  const jeuxMentionnables = (await listGames()).map((g) => ({
+    id: g.id,
+    title: g.title,
+  }));
+
+  const comments: CommentForDisplay[] = commentairesBruts.map(
     (comment) => ({
       id: comment.id,
       segments: renderForAudience(
@@ -170,7 +190,7 @@ export default async function ReviewPage({
       <header className="flex flex-col gap-s2">
         <div className="flex items-start justify-between gap-s4">
           <h1 className="font-display text-[25px] font-semibold leading-tight">
-            <Link href={`/game/${review.game.id}`} className="hover:text-accent-text">
+            <Link href={`/game/${review.game.id}`} className="lien">
               {review.game.title}
             </Link>
           </h1>
@@ -211,7 +231,15 @@ export default async function ReviewPage({
           ) : null}
         </div>
         <p className="text-[12px] text-text-muted">
-          par {review.author.name ?? "Quelqu'un"}
+          par{" "}
+          {/*
+            LE NOM MÈNE AU PROFIL, ici comme dans le fil. Il n'était même pas un lien sur la
+            page d'un avis — l'écran où l'on se demande le plus « c'est qui, celui-là, et
+            qu'est-ce qu'il aime d'autre ? ». Signalé par Victor.
+          */}
+          <Link href={`/profile/${review.author.id}`} className="lien">
+            {review.author.name ?? "Quelqu'un"}
+          </Link>
           {playtime.length > 0 ? <> · {playtime.join(" · ")}</> : null}
           {" · "}
           <time dateTime={review.createdAt.toISOString()}>
@@ -318,6 +346,8 @@ export default async function ReviewPage({
       <Comments
         reviewId={review.id}
         gameTitle={review.game.title}
+        jeuxMentionnables={jeuxMentionnables}
+        mentions={mentions}
         comments={comments}
         canWrite={reader.userId !== null}
       />

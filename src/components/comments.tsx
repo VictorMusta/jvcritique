@@ -7,7 +7,8 @@ import {
   addCommentAction,
   deleteCommentAction,
 } from "~/server/actions/comment";
-import { SpoilerText } from "./spoiler-text";
+import { CommentEditor, type JeuMentionnable } from "./comment-editor";
+import { SpoilerText, type TitresMentionnes } from "./spoiler-text";
 
 /**
  * Fil de commentaires sous un Avis.
@@ -31,11 +32,17 @@ export function Comments({
   gameTitle,
   comments,
   canWrite,
+  jeuxMentionnables = [],
+  mentions = {},
 }: {
   readonly reviewId: string;
   readonly gameTitle: string;
   readonly comments: readonly CommentForDisplay[];
   readonly canWrite: boolean;
+  /** Le catalogue, pour l'autocomplétion des mentions. */
+  readonly jeuxMentionnables?: readonly JeuMentionnable[];
+  /** Titres des jeux déjà mentionnés, résolus côté serveur. */
+  readonly mentions?: TitresMentionnes;
 }) {
   const [body, setBody] = useState("");
   const [pending, startTransition] = useTransition();
@@ -97,7 +104,11 @@ export function Comments({
             ) : null}
           </div>
           <p className="text-[13px] leading-relaxed">
-            <SpoilerText segments={comment.segments} gameTitle={gameTitle} />
+            <SpoilerText
+              segments={comment.segments}
+              gameTitle={gameTitle}
+              mentions={mentions}
+            />
           </p>
         </article>
       ))}
@@ -107,14 +118,12 @@ export function Comments({
           <label htmlFor="commentaire" className="sr-only">
             Écrire un commentaire
           </label>
-          <textarea
+          <CommentEditor
             id="commentaire"
-            rows={3}
-            value={body}
-            onChange={(e) => setBody(e.target.value)}
-            placeholder="Tu en penses quoi ?"
-            maxLength={2000}
-            className="rounded-[8px] border border-border bg-surface-raised px-s4 py-s3 text-[13px] leading-relaxed"
+            valeur={body}
+            onChange={setBody}
+            jeux={jeuxMentionnables}
+            disabled={pending}
           />
           <div className="flex items-center gap-s4">
             <button
@@ -125,9 +134,9 @@ export function Comments({
             >
               {pending ? "Envoi…" : "Commenter"}
             </button>
-            {/* La syntaxe des spoilers vaut ici aussi : autant le dire là où on écrit. */}
-            <span className="text-[11px] italic text-text-muted">
-              Entoure un passage de || pour le masquer.
+            {/* Les deux syntaxes du champ, dites là où on écrit. */}
+            <span className="text-[11px] italic leading-snug text-text-muted">
+              Entoure un passage de || pour le masquer. Tape @ pour mentionner un jeu.
             </span>
           </div>
         </div>

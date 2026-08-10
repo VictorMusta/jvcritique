@@ -62,17 +62,32 @@ export function appliquerFiltre<T extends AvisFiltrable>(
     case "tous":
       return [...avis];
 
+    /*
+     * LES DEUX SÉLECTIONS SONT TRIÉES PAR NOTE, en sens opposés — demandé par Victor le
+     * 10 août 2026.
+     *
+     * Le tri chronologique n'a pas de sens ici : « ses bangers » répond à « qu'est-ce qu'il a
+     * le plus aimé », donc le plus aimé se lit d'abord. Et « ses désastres » à la question
+     * symétrique, donc le pire d'abord. Trier du plus récent au plus ancien, comme le reste du
+     * fil, obligerait à parcourir la liste pour trouver ce qu'on est venu chercher.
+     */
     case "bangers":
-      return avis.filter((a) => {
-        const note = noteDeLAuteur(a);
-        return note !== null && note >= SEUIL_BANGER;
-      });
+      return trierParNote(
+        avis.filter((a) => {
+          const note = noteDeLAuteur(a);
+          return note !== null && note >= SEUIL_BANGER;
+        }),
+        "descendant",
+      );
 
     case "desastres":
-      return avis.filter((a) => {
-        const note = noteDeLAuteur(a);
-        return note !== null && note <= SEUIL_DESASTRE;
-      });
+      return trierParNote(
+        avis.filter((a) => {
+          const note = noteDeLAuteur(a);
+          return note !== null && note <= SEUIL_DESASTRE;
+        }),
+        "ascendant",
+      );
 
     case "termines":
       return avis.filter((a) => a.completed);
@@ -85,4 +100,23 @@ export function appliquerFiltre<T extends AvisFiltrable>(
         (a, b) => (b.playtimeHours ?? -1) - (a.playtimeHours ?? -1),
       );
   }
+}
+
+/**
+ * Trie par note de l'auteur.
+ *
+ * Les avis sans note ne se présentent pas ici — les deux filtres qui appellent cette fonction
+ * les ont déjà écartés. Le repli à zéro n'est donc pas un choix de rangement mais une
+ * précaution : il garantit un ordre défini si un troisième appelant apparaissait un jour.
+ */
+function trierParNote<T extends AvisFiltrable>(
+  avis: readonly T[],
+  sens: "ascendant" | "descendant",
+): T[] {
+  return [...avis].sort((a, b) => {
+    const na = noteDeLAuteur(a) ?? 0;
+    const nb = noteDeLAuteur(b) ?? 0;
+
+    return sens === "descendant" ? nb - na : na - nb;
+  });
 }
