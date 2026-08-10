@@ -2,6 +2,12 @@
 
 import { useEffect, useState } from "react";
 
+import {
+  demanderPermission,
+  etatPermission,
+  type EtatPermission,
+} from "./permission-notifications";
+
 /**
  * Autorisation des notifications du système — demandée par Victor le 10 août 2026.
  *
@@ -20,37 +26,16 @@ import { useEffect, useState } from "react";
  * plus rien laisserait croire à une panne. On explique où se trouve le réglage à la place.
  */
 
-type Etat = "inconnu" | "indisponible" | "default" | "granted" | "denied";
-
 export function NotificationsSysteme() {
-  const [etat, setEtat] = useState<Etat>("inconnu");
+  const [etat, setEtat] = useState<EtatPermission | "inconnu">("inconnu");
 
   useEffect(() => {
     // Lu au montage : `Notification` n'existe pas sur le serveur, et l'interroger pendant le
     // rendu ferait diverger les deux passages.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setEtat(
-      typeof Notification === "undefined"
-        ? "indisponible"
-        : Notification.permission,
-    );
+    setEtat(etatPermission());
   }, []);
 
-  async function demander() {
-    if (typeof Notification === "undefined") return;
-
-    const reponse = await Notification.requestPermission();
-    setEtat(reponse);
-
-    if (reponse === "granted") {
-      // Une bannière d'essai immédiate : c'est la seule façon de vérifier que ça marche
-      // vraiment sur son appareil, sans attendre qu'un ami commente.
-      new Notification("jvcritiqué", {
-        body: "C’est bon — tu seras prévenu ici.",
-        tag: "jvcritique-activite",
-      });
-    }
-  }
 
   return (
     <section className="panneau flex flex-col gap-s3 p-s5">
@@ -74,7 +59,7 @@ export function NotificationsSysteme() {
       {etat === "default" ? (
         <button
           type="button"
-          onClick={() => void demander()}
+          onClick={() => void demanderPermission().then(setEtat)}
           className="self-start rounded-[8px] bg-accent px-s5 py-s3 text-[13px] font-semibold text-on-accent"
         >
           Autoriser les notifications

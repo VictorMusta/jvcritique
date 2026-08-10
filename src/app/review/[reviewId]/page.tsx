@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { DomainBars } from "~/components/domain-bars";
@@ -21,10 +22,53 @@ import { extraireMentions } from "~/domain/mentions";
 import { getComments } from "~/server/db/queries/comments";
 import { listGames, titresDeJeux } from "~/server/db/queries/games";
 import { getReviewById } from "~/server/db/queries/reviews";
+import { noteDeLAuteur } from "~/domain/scoring/synthese-jeu";
+import { couvertureSteam } from "~/domain/steam";
+import { apercuAvis } from "~/server/apercu-partage";
 import { todosParmi } from "~/server/db/queries/todos";
 import { getReaderContext } from "~/server/reader";
 
 export const dynamic = "force-dynamic";
+
+/**
+ * Aperçu de partage — Open Graph.
+ *
+ * L'avis est relu SANS session, exactement comme le verrait un robot : c'est la seule façon de
+ * s'assurer qu'un avis privé ne décrit rien. `apercuAvis` retombe alors sur les métadonnées du
+ * site, ce qui rend le lien indistinguable d'un lien mort — précisément ce qu'on veut.
+ */
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ reviewId: string }>;
+}): Promise<Metadata> {
+  const { reviewId } = await params;
+  const avis = await getReviewById(reviewId);
+
+  if (avis === null) {
+    return {};
+  }
+
+  // Le premier champ REMPLI, dans l'ordre du formulaire — le même choix que dans le fil. Un
+  // avis sur un jeu qu'on ne recommande pas ne doit pas produire un aperçu vide.
+  const texte =
+    avis.whyRecommend ??
+    avis.whyNotRecommend ??
+    avis.whatMissed ??
+    avis.whatHated ??
+    null;
+
+  return apercuAvis({
+    isPrivate: avis.isPrivate,
+    gameTitle: avis.game.title,
+    authorName: avis.author.name ?? "Quelqu'un",
+    note: noteDeLAuteur(avis),
+    texte,
+    capture: avis.screenshots[0]?.storageKey ?? null,
+    couverture: couvertureSteam(avis.game.steamUrl),
+    reviewId,
+  });
+}
 
 /** Les quatre champs argumentés (FR-4), tous facultatifs et indépendants. */
 const argued = [

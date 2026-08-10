@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { GameEditForm } from "~/components/game-edit-form";
@@ -10,9 +11,43 @@ import { getGameById } from "~/server/db/queries/games";
 import { getReviewsByGame } from "~/server/db/queries/reviews";
 import { synthetiserJeu } from "~/domain/scoring/synthese-jeu";
 import { couvertureSteam } from "~/domain/steam";
+import { apercuJeu } from "~/server/apercu-partage";
 import { getReaderContext } from "~/server/reader";
 
 export const dynamic = "force-dynamic";
+
+/**
+ * Aperçu de partage — Open Graph.
+ *
+ * Les avis sont relus SANS session : la moyenne d'un aperçu public ne doit compter que ce que
+ * n'importe qui peut vérifier en ouvrant le lien. Compter un avis privé donnerait un chiffre
+ * qui ne correspond à rien de visible.
+ */
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ gameId: string }>;
+}): Promise<Metadata> {
+  const { gameId } = await params;
+  const jeu = await getGameById(gameId);
+
+  if (!jeu) {
+    return {};
+  }
+
+  const publics = await getReviewsByGame(gameId, null);
+
+  return apercuJeu({
+    gameId,
+    title: jeu.title,
+    moyenne: synthetiserJeu(publics).globale,
+    // La première capture jamais déposée, comme la galerie : l'illustration d'une fiche ne
+    // doit pas changer à chaque publication.
+    capture:
+      [...publics].reverse().flatMap((a) => a.screenshots)[0]?.storageKey ?? null,
+    couverture: couvertureSteam(jeu.steamUrl),
+  });
+}
 
 export default async function GamePage({
   params,
