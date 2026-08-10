@@ -48,12 +48,88 @@ function ouvreLeClavier(cible: EventTarget | null): boolean {
   );
 }
 
+/**
+ * Les icônes, choisies par Victor sur maquette le 10 août 2026 — jeu « trait fin ».
+ *
+ * ELLES REMPLACENT DES GLYPHES TYPOGRAPHIQUES qui ne se distinguaient presque pas les uns des
+ * autres et dont aucun ne disait ce qu'il désignait. Une maison, un crayon, un dé, une cloche
+ * et une silhouette se reconnaissent sans apprentissage.
+ *
+ * LE LIBELLÉ RESTE, mais sa justification a changé. La règle d'origine disait que les icônes du
+ * produit n'étaient pas conventionnelles et ne pouvaient donc pas se passer de leur mot.
+ * Celles-ci le sont. Ils restent quand même : à cinq amis dont personne n'a lu de mode
+ * d'emploi, un mot de onze pixels coûte moins cher qu'une hésitation.
+ *
+ * Dessinées à la main plutôt que tirées d'une bibliothèque : cinq icônes ne valent pas une
+ * dépendance, ni les kilooctets qu'elle ferait charger à chaque visite.
+ */
+const traits = {
+  // `1.7` et non `2` : à 21 px, un trait de 2 px empâte les angles du dé et de la maison.
+  strokeWidth: 1.7,
+  strokeLinecap: "round",
+  strokeLinejoin: "round",
+} as const;
+
+function Maison() {
+  return (
+    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" {...traits}>
+      <path d="M3 10l9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z" />
+    </svg>
+  );
+}
+
+function Crayon() {
+  return (
+    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" {...traits}>
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" />
+    </svg>
+  );
+}
+
+function De() {
+  return (
+    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" {...traits}>
+      <rect x="3" y="3" width="18" height="18" rx="3" />
+      {/* Les points sont PLEINS : à cette taille, un cercle en trait de 1,7 px se remplit
+          visuellement de lui-même et devient une tache floue. */}
+      {[
+        [8.5, 8.5],
+        [15.5, 8.5],
+        [12, 12],
+        [8.5, 15.5],
+        [15.5, 15.5],
+      ].map(([cx, cy]) => (
+        <circle key={`${cx}-${cy}`} cx={cx} cy={cy} r={1.1} fill="currentColor" stroke="none" />
+      ))}
+    </svg>
+  );
+}
+
+function Cloche() {
+  return (
+    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" {...traits}>
+      <path d="M18 8a6 6 0 1 0-12 0c0 7-3 8-3 8h18s-3-1-3-8" />
+      <path d="M13.7 20a2 2 0 0 1-3.4 0" />
+    </svg>
+  );
+}
+
+function Silhouette() {
+  return (
+    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" {...traits}>
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+      <circle cx="12" cy="7" r="4" />
+    </svg>
+  );
+}
+
 const items = [
-  { href: "/", label: "Fil", glyph: "◈" },
-  { href: "/publish", label: "Écrire", glyph: "✎" },
-  { href: "/games", label: "Jeux", glyph: "◇" },
-  { href: "/activite", label: "Activité", glyph: "◍" },
-  { href: "/profile", label: "Profil", glyph: "◉" },
+  { href: "/", label: "Fil", Icone: Maison },
+  { href: "/publish", label: "Écrire", Icone: Crayon },
+  { href: "/games", label: "Jeux", Icone: De },
+  { href: "/activite", label: "Activité", Icone: Cloche },
+  { href: "/profile", label: "Profil", Icone: Silhouette },
 ] as const;
 
 export function TabBar({
@@ -150,7 +226,7 @@ export function TabBar({
       className="fixed inset-x-0 bottom-0 z-10 border-t border-border bg-surface"
     >
       <ul className="mx-auto flex max-w-2xl">
-        {items.map(({ href, label, glyph }) => {
+        {items.map(({ href, label, Icone }) => {
           // Le fil est à la racine : sans le cas particulier, tout chemin commencerait par
           // « / » et les quatre onglets seraient actifs en même temps.
           const active =
@@ -165,8 +241,8 @@ export function TabBar({
                   active ? "text-accent-text" : "text-text-muted"
                 }`}
               >
-                <span aria-hidden className="relative text-base leading-none">
-                  {glyph}
+                <span aria-hidden className="relative leading-none">
+                  <Icone />
                   {/*
                     LA PASTILLE PORTE LE NOMBRE, pas un simple point.
                     « 3 » dit s'il vaut la peine d'ouvrir tout de suite ; un point ne dit que
