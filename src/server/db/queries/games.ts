@@ -146,7 +146,7 @@ export async function listGamesForPicker(): Promise<
  * cinq personnes. Le jour où ce n'est plus vrai, cette fonction est le seul endroit à
  * changer.
  */
-export async function listGames() {
+export async function listGames(viewerId: string | null = null) {
   /*
    * Le nombre d'avis compte les seuls avis PUBLICS, et c'est une décision de confidentialité
    * plutôt qu'une simplification.
@@ -163,6 +163,19 @@ export async function listGames() {
       steamUrl: games.steamUrl,
       createdAt: games.createdAt,
       nbAvis: sql<number>`count(${reviews.id}) filter (where ${reviews.isPrivate} = false)::int`,
+      /*
+       * Deux marqueurs personnels, demandés par Victor : une coche pour les jeux dont on a
+       * écrit l'avis, une couronne pour ceux qu'on a marqués terminés.
+       *
+       * Agrégés dans la MÊME requête plutôt que par une seconde passe : la liste des jeux est
+       * une page à nombre de requêtes borné, et interroger ses propres avis à part
+       * n'apporterait rien qu'un aller-retour de plus.
+       *
+       * Le filtre porte sur l'auteur : ce sont SES avis, pas ceux du groupe. Sans lui, la
+       * coche s'allumerait dès que n'importe qui a écrit sur le jeu.
+       */
+      jaiUnAvis: sql<boolean>`bool_or(${reviews.authorId} is not distinct from ${viewerId})`,
+      jaiTermine: sql<boolean>`bool_or(${reviews.authorId} is not distinct from ${viewerId} and ${reviews.completed})`,
     })
     .from(games)
     .leftJoin(reviews, eq(reviews.gameId, games.id))

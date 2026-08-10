@@ -30,7 +30,15 @@ export default async function EditReviewPage({
   }
 
   return (
-    <main className="flex flex-col gap-s6 p-s5">
+    <main className="flex flex-col gap-s4 p-s3">
+      {/*
+        LE PANNEAU MANQUAIT ICI, et c'est la même régression que celle corrigée hier sur le
+        profil et la page d'un avis. Signalé par Victor : sur téléphone, le formulaire
+        d'édition laissait voir le motif partout, donc du texte posé sur un damier.
+        La page de rédaction l'avait reçu, celle de MODIFICATION avait été oubliée — deux
+        écrans qui affichent le même formulaire.
+      */}
+      <div className="panneau flex flex-col gap-s6 p-s5">
       <header className="flex flex-col gap-s1">
         <h1 className="font-display text-[25px] font-semibold leading-tight">
           Modifier ton avis
@@ -43,6 +51,7 @@ export default async function EditReviewPage({
         authorWeighting={reader.weighting}
         initial={review}
       />
+      </div>
     </main>
   );
 }
