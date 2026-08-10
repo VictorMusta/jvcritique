@@ -12,6 +12,7 @@ import type { Weighting } from "~/domain/types";
 import type { ReviewForDisplay } from "~/server/db/queries/reviews";
 import { DomainBars } from "./domain-bars";
 import { ScorePair } from "./score-pair";
+import { CarteCliquable } from "./carte-cliquable";
 import { ReviewBody } from "./review-body";
 
 type Props = {
@@ -107,12 +108,15 @@ export function ReviewCard({
      *
      * `orne` pose les deux coins ornés de la variante ; `relative` leur sert de référence.
      */
-    <article className="orne relative flex flex-col gap-s4 rounded-md bg-surface p-s5">
+    <CarteCliquable
+      href={`/review/${review.id}`}
+      className="orne relative flex cursor-pointer flex-col gap-s4 rounded-md bg-surface p-s5"
+    >
       <header className="flex flex-col gap-s1">
         {showGameTitle ? (
           /* Le nom du jeu en grand : c'est ce qu'on cherche en parcourant un fil. */
           <h2 className="font-display text-[21px] font-semibold leading-tight">
-            <Link href={`/game/${review.game.id}`} className="hover:text-accent-text">
+            <Link href={`/game/${review.game.id}`} className="lien">
               {review.game.title}
             </Link>
           </h2>
@@ -121,10 +125,7 @@ export function ReviewCard({
           par{" "}
           {/* Le nom mène au profil de son auteur : c'est le chemin naturel pour aller voir
               ce que quelqu'un écrit d'autre, et il n'existait nulle part. */}
-          <Link
-            href={`/profile/${review.author.id}`}
-            className="hover:text-accent-text"
-          >
+          <Link href={`/profile/${review.author.id}`} className="lien">
             {review.author.name ?? "Quelqu'un"}
           </Link>
           {playtime ? <> · {playtime}</> : null}
@@ -168,12 +169,21 @@ export function ReviewCard({
 
       <ReviewBody champs={champs} gameTitle={review.game.title} />
 
+      {/*
+        Le lien reste, ET il grossit. Victor le trouvait « trop petit et peu visible » — il
+        était à 12 px, sans cadre, au bas d'une carte devenue longue.
+
+        Il ne disparaît pas maintenant que la carte entière est cliquable : c'est LUI le
+        chemin accessible. Un gestionnaire de clic sur un conteneur n'est pas atteignable au
+        clavier, et le clic sur la carte n'est qu'une commodité posée par-dessus.
+      */}
       <Link
         href={`/review/${review.id}`}
-        className="self-start text-[12px] font-semibold text-accent-text transition-opacity hover:opacity-70"
+        className="flex items-center justify-center gap-s2 rounded-[8px] border border-accent px-s4 py-s3 text-[12px] font-semibold text-accent-text"
       >
-        Lire l&apos;avis →
+        Lire l&apos;avis en entier
+        <span aria-hidden>→</span>
       </Link>
-    </article>
+    </CarteCliquable>
   );
 }
