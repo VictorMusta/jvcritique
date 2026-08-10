@@ -4,6 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import { useVeilleNotifications } from "./veille-notifications";
+
 /**
  * Barre de navigation du bas.
  *
@@ -78,16 +80,35 @@ export function TabBar({
    * L'état reste vrai pour le reste de la session, ce qui est correct : le prochain
    * chargement complet reprendra le compte réel, qui vaudra zéro.
    */
-  const [activiteVue, setActiviteVue] = useState(pathname === "/activite");
+  /*
+   * LE COMPTE VIENT DÉSORMAIS D'UNE SURVEILLANCE, plus seulement du rendu serveur.
+   *
+   * La propriété reçue sert d'amorce, pour que la pastille soit juste au premier affichage
+   * sans attendre la première interrogation. Ensuite c'est la veille qui a raison : elle voit
+   * arriver une notification sans qu'on ait rechargé, ce que Victor demandait.
+   */
+  const compte = useVeilleNotifications(nonLues);
 
-  // Ajusté PENDANT le rendu et non dans un effet : c'est un état dérivé d'une propriété, le
-  // cas que React prévoit explicitement. Dans un effet, la pastille resterait allumée le
-  // temps d'un rendu de plus — visible, et sur l'écran même qui est censé l'éteindre.
-  if (pathname === "/activite" && !activiteVue) {
-    setActiviteVue(true);
+  /*
+   * L'extinction locale est CONSERVÉE malgré la surveillance, et pour une raison de délai.
+   *
+   * Arriver sur l'activité marque tout comme lu côté serveur, mais l'interrogation suivante
+   * peut être à trente secondes : sans cette extinction immédiate, la pastille resterait
+   * allumée sur l'écran même qui vient de la vider.
+   *
+   * Elle est RELÂCHÉE dès que la surveillance annonce plus que ce qu'on avait éteint — sinon
+   * une notification arrivée après la visite ne s'afficherait plus jamais. C'était le défaut
+   * de la version précédente, où le verrou tenait toute la session.
+   */
+  const [eteintA, setEteintA] = useState<number | null>(
+    pathname === "/activite" ? 0 : null,
+  );
+
+  if (pathname === "/activite" && eteintA === null) {
+    setEteintA(0);
   }
 
-  const aSignaler = activiteVue ? 0 : nonLues;
+  const aSignaler = eteintA !== null && compte <= eteintA ? 0 : compte;
   const [saisieEnCours, setSaisieEnCours] = useState(false);
 
   useEffect(() => {

@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 
 import { AnnounceBacklog } from "~/components/announce-backlog";
 import { SignInButton } from "~/components/auth-buttons";
+import { NotificationsSysteme } from "~/components/notifications-systeme";
 import { ShowcaseForm } from "~/components/showcase-form";
 import { ThemePicker } from "~/components/theme-picker";
 import { WeightingForm } from "~/components/weighting-form";
@@ -75,18 +76,14 @@ export default async function ReglagesPage() {
       <ThemePicker actuel={themeValide((await cookies()).get("theme")?.value)} />
 
       {/*
-        Les notifications N'ONT PAS DE RÉGLAGE, et c'est délibéré.
+        LE RÉGLAGE EXISTE MAINTENANT, et la position n'a pas changé — la fonctionnalité, oui.
 
-        Victor voulait « activer les notifications ». Celles de l'application ne demandent
-        aucune autorisation : elles s'affichent dans l'onglet Activité, sans rien envoyer
-        nulle part. Un interrupteur ne servirait qu'à les éteindre, ce que personne ne
-        cherche à faire.
-
-        Le jour où il y aura des notifications POUSSÉES — celles qui font vibrer le téléphone
-        même hors de l'application — un réglage aura un sens, parce qu'il y aura une
-        permission à donner et un dérangement à accepter. Poser l'interrupteur avant la
-        fonctionnalité donnerait une case à cocher qui ne change rien.
+        Hier je notais qu'un interrupteur pour les notifications de l'application n'aurait
+        servi à rien : elles ne demandent aucune permission et ne dérangent personne, elles
+        attendent dans un onglet. Les notifications du SYSTÈME dérangent vraiment : il y a une
+        permission à donner, donc un réglage à offrir.
       */}
+      <NotificationsSysteme />
 
       {/* Entretien réservé aux administrateurs. Ici plutôt que sur le profil : c'est une
           opération sur le site, pas quelque chose qui parle de soi. */}
