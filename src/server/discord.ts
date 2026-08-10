@@ -1,4 +1,5 @@
 import { discordExcerpt } from "~/domain/spoilers/render-for-audience";
+import { baseUrl } from "~/server/base-url";
 import { env } from "~/env";
 
 /**
@@ -25,20 +26,6 @@ type Annonce = {
   body: string | null;
   isPrivate: boolean;
 };
-
-/** Base publique du site, pour composer le lien de l'avis. */
-function baseUrl(): string | null {
-  if (env.APP_URL) {
-    return env.APP_URL.replace(/\/$/, "");
-  }
-
-  // Repli : `AUTH_URL` vaut « https://…/api/auth » par convention du projet.
-  if (env.AUTH_URL) {
-    return env.AUTH_URL.replace(/\/api\/auth\/?$/, "").replace(/\/$/, "");
-  }
-
-  return null;
-}
 
 /**
  * Publie l'annonce. Ne lève JAMAIS.

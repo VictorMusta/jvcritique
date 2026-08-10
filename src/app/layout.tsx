@@ -5,6 +5,7 @@ import { Fraunces, Inter } from "next/font/google";
 
 import { auth } from "~/server/auth";
 import { compterNonLues } from "~/server/db/queries/notifications";
+import { InvitationNotifications } from "~/components/invitation-notifications";
 import { TabBar } from "~/components/tab-bar";
 import { themeValide } from "~/domain/themes";
 import { cookies } from "next/headers";
@@ -64,6 +65,12 @@ export default async function RootLayout({
    */
   const theme = themeValide((await cookies()).get("theme")?.value);
 
+  // Une seule lecture de session pour toute la mise en page : l'invitation et la pastille en
+  // ont besoin l'une comme l'autre, et deux appels feraient deux requetes pour la meme
+  // reponse.
+  const userId = (await auth())?.user?.id ?? null;
+  const connecte = userId !== null;
+
   return (
     <html
       lang="fr"
@@ -74,9 +81,15 @@ export default async function RootLayout({
         {/* pb-20 réserve la hauteur de la barre du bas : sans ça, le dernier avis du fil
             reste inaccessible sous la navigation. */}
         <div className="mx-auto min-h-screen w-full max-w-2xl pb-20">
+          {/*
+            EN TETE, avant le contenu, et seulement pour qui est connecte : les notifications
+            parlent de ses propres avis. Elle se cache d'elle-meme des que la question a ete
+            posee une fois — au navigateur ou a la personne.
+          */}
+          {connecte ? <InvitationNotifications /> : null}
           {children}
         </div>
-        <TabBar nonLues={await compterNonLues((await auth())?.user?.id ?? null)} />
+        <TabBar nonLues={await compterNonLues(userId)} />
       </body>
     </html>
   );
