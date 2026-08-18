@@ -123,10 +123,22 @@ export const comfortHints = {
  * que la note n'est PAS personnalisée, pour qu'un repli ne se fasse jamais passer pour un
  * calcul sur mesure.
  */
+/**
+ * À QUI APPARTIENNENT LES CRITÈRES. Sans ce paramètre, la note de l'auteur s'annonçait
+ * « selon TES critères » alors qu'elle est calculée avec les SIENS — et sur un avis affichant
+ * les deux notes, la même phrase apparaissait deux fois de suite, attribuant à celui qui lit
+ * une pondération qui n'est pas la sienne.
+ *
+ * C'est une atteinte directe à INV-5, qui veut qu'une note ne s'affiche jamais sans dire de
+ * qui elle vient : ici elle le disait, mais la mention juste en dessous la démentait.
+ * Repéré le 18 août 2026 en préparant les captures du CV.
+ */
+export type Possessif = "tes" | "ses";
+
 export const scoreModeLabels = {
-  weighted: (count: number) =>
-    `Selon tes critères, sur ${count} ${count > 1 ? "domaines notés" : "domaine noté"}.`,
-  simpleMean: (count: number) =>
-    `Moyenne simple sur ${count} ${count > 1 ? "domaines" : "domaine"} — tes critères ne sont pas couverts par cet avis.`,
+  weighted: (count: number, possessif: Possessif = "tes") =>
+    `Selon ${possessif} critères, sur ${count} ${count > 1 ? "domaines notés" : "domaine noté"}.`,
+  simpleMean: (count: number, possessif: Possessif = "tes") =>
+    `Moyenne simple sur ${count} ${count > 1 ? "domaines" : "domaine"} — ${possessif} critères ne sont pas couverts par cet avis.`,
   none: () => "Pas de domaine noté, donc pas de note recalculable.",
 } as const;

@@ -56,7 +56,8 @@ export function presentAuthorScore(
   return {
     ownerName: authorName,
     value: outcome.score,
-    provenance: scoreModeLabels[outcome.mode](outcome.domainsUsed.length),
+    // « ses » : cette note sort de la pondération de L'AUTEUR, pas de celle du lecteur.
+    provenance: scoreModeLabels[outcome.mode](outcome.domainsUsed.length, "ses"),
   };
 }
 
@@ -101,6 +102,7 @@ export function presentReaderScore(
   return {
     ownerName: readerName,
     value: outcome.score,
-    provenance: scoreModeLabels[outcome.mode](outcome.domainsUsed.length),
+    // « tes » : c'est la seule des deux notes qui applique la pondération de celui qui lit.
+    provenance: scoreModeLabels[outcome.mode](outcome.domainsUsed.length, "tes"),
   };
 }
