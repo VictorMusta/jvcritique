@@ -34,7 +34,12 @@ export default async function FeedPage() {
   const aChoisiSonTheme = (await cookies()).has("theme");
 
   return (
-    <main className="flex flex-col gap-s5 p-s5">
+    /*
+     * `data-page-large` : le fil demande l'enveloppe large (voir globals.css). C'est le seul
+     * écran du produit où deux colonnes ont un sens — on parcourt le fil, on ne le lit pas
+     * ligne à ligne.
+     */
+    <main className="flex flex-col gap-s5 p-s5" data-page-large>
       {reader.userId !== null && !aChoisiSonTheme ? <ThemeOnboarding /> : null}
 
       <header className="flex items-baseline justify-between gap-s4">
@@ -52,7 +57,7 @@ export default async function FeedPage() {
          * Sans pondération, le lecteur ne voit que la note de l'auteur (FR-15) — donc il
          * rate l'intérêt du produit. On le lui dit une fois, sans le bloquer.
          */
-        <p className="rounded-[8px] border border-accent/40 bg-surface p-s4 text-[12px]">
+        <p className="max-w-2xl rounded-[8px] border border-accent/40 bg-surface p-s4 text-[12px]">
           Tu n&apos;as pas encore réglé tes critères, donc tu ne vois que les notes des
           autres.{" "}
           <Link href="/profile" className="font-semibold text-accent-text">
@@ -65,7 +70,7 @@ export default async function FeedPage() {
       {feed.length === 0 ? (
         /* Un fil vide invite, il ne montre pas une page blanche (FR-14). Et il ne remonte
            pas d'avis anciens pour se remplir artificiellement. */
-        <div className="flex flex-col gap-s4 rounded-[10px] border border-border bg-surface p-s6 text-center">
+        <div className="mx-auto flex w-full max-w-2xl flex-col gap-s4 rounded-[10px] border border-border bg-surface p-s6 text-center">
           <p className="font-display text-[15px]">Rien ici pour l&apos;instant.</p>
           <p className="text-[12px] text-text-muted">
             Le premier avis, c&apos;est le plus dur. Vas-y, note un jeu que tu as aimé.
@@ -78,7 +83,11 @@ export default async function FeedPage() {
           </Link>
         </div>
       ) : (
-        <div className="flex flex-col gap-s5">
+        /*
+         * `items-start` : sans lui, la grille étire les deux cartes d'une ligne à la hauteur
+         * de la plus haute, et un avis court se retrouve avec un grand vide sous son texte.
+         */
+        <div className="flex flex-col gap-s5 lg:grid lg:grid-cols-2 lg:items-start">
           {feed.map((review) => (
             <ReviewCard
               key={review.id}
