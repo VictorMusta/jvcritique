@@ -790,3 +790,25 @@ input[type="range"].domain-slider[data-empty="true"]::-moz-range-thumb {
 .spoiler-mask:hover {
   filter: brightness(1.25);
 }
+
+/*
+ * LARGEUR DE PAGE, DÉCIDÉE PAR LA PAGE ELLE-MÊME.
+ *
+ * L'enveloppe est posée par la mise en page racine, donc partagée par toutes les routes :
+ * 42 rem, la largeur d'une colonne de lecture. Le fil est le seul écran qui gagne à être
+ * plus large — deux avis côte à côte au lieu d'un — et une page ne peut pas élargir un
+ * conteneur qui l'englobe.
+ *
+ * `:has()` renverse la relation : l'enveloppe s'élargit quand elle CONTIENT une page qui le
+ * demande. Une ligne, aucune donnée passée de bas en haut, et les pages de lecture (un avis,
+ * une fiche de jeu, un profil) gardent leur colonne étroite sans qu'on y touche — un
+ * paragraphe à 1150 px ne se lit pas.
+ *
+ * L'alternative aurait été de sortir la contrainte de la mise en page pour la reposer dans
+ * chacune des huit routes : plus de code, et une route oubliée s'affiche pleine largeur.
+ */
+@media (min-width: 64rem) {
+  .enveloppe-page:has([data-page-large]) {
+    max-width: 72rem;
+  }
+}

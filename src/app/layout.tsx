@@ -80,7 +80,7 @@ export default async function RootLayout({
       <body>
         {/* pb-20 réserve la hauteur de la barre du bas : sans ça, le dernier avis du fil
             reste inaccessible sous la navigation. */}
-        <div className="mx-auto min-h-screen w-full max-w-2xl pb-20">
+        <div className="enveloppe-page mx-auto min-h-screen w-full max-w-2xl pb-20">
           {/*
             EN TETE, avant le contenu, et seulement pour qui est connecte : les notifications
             parlent de ses propres avis. Elle se cache d'elle-meme des que la question a ete

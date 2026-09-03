@@ -49,18 +49,25 @@ npm install
 ### 2. Base de données
 
 ```bash
-docker run -d --name jvcritique-dev-db -e POSTGRES_USER=jvcritique -e POSTGRES_PASSWORD=devlocal -e POSTGRES_DB=jvcritique -p 55432:5432 postgres:17-bookworm
+docker run -d --name jvcritique-dev-db -e POSTGRES_USER=jvcritique -e POSTGRES_PASSWORD=devlocal -e POSTGRES_DB=jvcritique -p 127.0.0.1:15432:5432 postgres:17-bookworm
 ```
 
-Port **55432** et non 5432 : la machine héberge d'autres PostgreSQL, et un port décalé
-supprime la question du conflit au lieu de la déplacer.
+Port **15432** et non 5432 : la machine héberge d'autres PostgreSQL, et un port décalé
+supprime la question du conflit au lieu de la déplacer. Et **sous 49152**, volontairement :
+Windows réserve au hasard des plages de la zone dynamique (49152-65535) à chaque redémarrage
+pour Hyper-V, et un conteneur dont le port tombe dedans refuse de démarrer avec « An attempt
+was made to access a socket in a way forbidden by its access permissions ». Libérer la plage
+demande des droits administrateur qu'un poste d'entreprise n'a pas ; un port bas évite la
+question. C'est arrivé sur 55432, l'ancien port de ce projet.
+
+`127.0.0.1:` devant le port : une base de développement n'a rien à faire sur le réseau.
 
 ### 3. Variables d'environnement
 
 Copier `.env.example` vers `.env`, puis renseigner :
 
 ```
-DATABASE_URL=postgresql://jvcritique:devlocal@localhost:55432/jvcritique
+DATABASE_URL=postgresql://jvcritique:devlocal@localhost:15432/jvcritique
 AUTH_SECRET=<sortie de `npx auth secret`>
 AUTH_DISCORD_ID=<application Discord de développement>
 AUTH_DISCORD_SECRET=<idem>
@@ -104,7 +111,7 @@ npm run dev
 |---|---|
 | `npm run dev` | Serveur de développement |
 | `npm test` | Tests unitaires — aucune infrastructure requise |
-| `npm run test:db` | Tests d'intégration — exigent une base migrée |
+| `npm run test:db` | Tests d'intégration — exigent une base migrée, et `DATABASE_URL` **dans l'environnement** : Vitest ne lit pas `.env.local` |
 | `npm run lint` | ESLint |
 | `npm run typecheck` | `tsc --noEmit` |
 | `npm run db:generate` | Génère une migration depuis le schéma |
