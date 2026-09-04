@@ -171,7 +171,16 @@ export function Paquet({
   const [compte, setCompte] = useState<Compte>(COMPTE_VIDE);
   const [deplacement, setDeplacement] = useState({ dx: 0, dy: 0 });
   const [enMain, setEnMain] = useState(false);
-  const [sortie, setSortie] = useState<Geste | null>(null);
+  /*
+   * LA CARTE QUI S'EN VA, gardée le temps de son animation. C'est un élément À PART : la
+   * première version réutilisait le même élément pour la carte suivante, qui repartait donc du
+   * bord de l'écran vers le centre — on voyait la carte « revenir ». Ici, chaque carte a son
+   * propre élément (clé = identifiant de l'avis) : celle qu'on balaie part pour de bon, celle
+   * qui attendait derrière monte à sa place.
+   */
+  const [sortante, setSortante] = useState<{ carte: ReviewForDisplay; geste: Geste } | null>(
+    null,
+  );
   const [, startTransition] = useTransition();
 
   const origine = useRef<{ x: number; y: number } | null>(null);
@@ -198,10 +207,11 @@ export function Paquet({
     router.refresh();
   }, [router]);
 
-  const appliquer = useCallback(
+  const lancer = useCallback(
     (geste: Geste) => {
       const carte = cartes[index];
-      if (!carte) {
+      // Règle 3 : rien pendant la sortie.
+      if (!carte || sortante !== null || mode !== "paquet") {
         return;
       }
       startTransition(async () => {
@@ -210,31 +220,32 @@ export function Paquet({
         await traiterCarteAction(carte.id, geste);
       });
       setCompte((c) => ({ ...c, [geste]: c[geste] + 1 }));
-      setSortie(null);
       setDeplacement({ dx: 0, dy: 0 });
-      if (index + 1 >= total) {
-        setMode("bilan");
-      } else {
+      setEnMain(false);
+      origine.current = null;
+
+      const derniere = index + 1 >= total;
+      if (mouvementReduit.current) {
+        if (derniere) {
+          setMode("bilan");
+        } else {
+          setIndex(index + 1);
+        }
+        return;
+      }
+      // La carte part ; la suivante devient courante TOUT DE SUITE, sous celle qui s'en va.
+      setSortante({ carte, geste });
+      if (!derniere) {
         setIndex(index + 1);
       }
+      window.setTimeout(() => {
+        setSortante(null);
+        if (derniere) {
+          setMode("bilan");
+        }
+      }, DUREE_SORTIE_MS);
     },
-    [cartes, index, total],
-  );
-
-  const lancer = useCallback(
-    (geste: Geste) => {
-      // Règle 3 : rien pendant la sortie.
-      if (sortie !== null || mode !== "paquet") {
-        return;
-      }
-      if (mouvementReduit.current) {
-        appliquer(geste);
-        return;
-      }
-      setSortie(geste);
-      window.setTimeout(() => appliquer(geste), DUREE_SORTIE_MS);
-    },
-    [appliquer, mode, sortie],
+    [cartes, index, mode, sortante, total],
   );
 
   // Le clavier, sur PC : les flèches doublent les quatre boutons, Entrée ouvre, Échap ferme.
@@ -280,7 +291,7 @@ export function Paquet({
   }, [mode, rendreLaMain]);
 
   const surPointerDown = (evenement: PointerEventReact<HTMLDivElement>) => {
-    if (evenement.button !== 0 || sortie !== null) {
+    if (evenement.button !== 0 || sortante !== null) {
       return;
     }
     // Un lien ou un bouton DANS la carte reste un lien ou un bouton : on ne le confisque pas.
@@ -345,18 +356,50 @@ export function Paquet({
     return <>{children}</>;
   }
 
-  // Le tampon : celui du geste confirmé, sinon celui que le déplacement annonce déjà.
-  const tampon =
-    sortie ?? (enMain ? resoudreGeste(deplacement.dx, deplacement.dy, SEUIL_GESTE / 2) : null);
-  const transform =
-    sortie !== null
-      ? transformDeSortie(sortie)
-      : enMain
-        ? `translate(${deplacement.dx}px, ${deplacement.dy}px) rotate(${deplacement.dx / 18}deg)`
-        : "none";
-  const transition = sortie !== null ? `transform ${DUREE_SORTIE_MS}ms ease-in, opacity ${DUREE_SORTIE_MS}ms` : enMain ? "none" : "transform 160ms ease-out";
+  // Le tampon : celui que le déplacement annonce déjà (la carte qui part garde le sien).
+  const tamponCourant = enMain
+    ? resoudreGeste(deplacement.dx, deplacement.dy, SEUIL_GESTE / 2)
+    : null;
   const restants = total - index;
   const auteurs = [...new Set(cartes.slice(index).map((c) => c.author.name ?? "Quelqu’un"))];
+
+  /*
+   * LA PILE : de bas en haut, la carte d'après, la courante, celle qui s'en va. Chaque élément
+   * est identifié par son avis, et React garde l'élément quand son rôle change — c'est ce qui
+   * fait que « derrière » devient « courante » en glissant vers l'avant, et que la sortante
+   * poursuit son mouvement depuis l'endroit où le doigt l'a lâchée.
+   */
+  type Role = "derriere" | "courante" | "sortante";
+  const pile: { carte: ReviewForDisplay; role: Role }[] = [];
+  if (suivante && suivante.id !== sortante?.carte.id) {
+    pile.push({ carte: suivante, role: "derriere" });
+  }
+  if (courante.id !== sortante?.carte.id) {
+    pile.push({ carte: courante, role: "courante" });
+  }
+  if (sortante) {
+    pile.push({ carte: sortante.carte, role: "sortante" });
+  }
+  // Une seule carte donne sa hauteur au conteneur : la courante, ou la sortante s'il n'en
+  // reste plus (le dernier avis qui s'en va, avant le bilan).
+  const roleEnFlux: Role = pile.some((p) => p.role === "courante") ? "courante" : "sortante";
+
+  const styleDe = (role: Role, geste: Geste | undefined): React.CSSProperties => {
+    switch (role) {
+      case "derriere":
+        return { transform: "scale(.97)", opacity: 0.8, transition: "transform 200ms ease-out, opacity 200ms" };
+      case "courante":
+        return enMain
+          ? { transform: `translate(${deplacement.dx}px, 0) rotate(${deplacement.dx / 18}deg)`, transition: "none" }
+          : { transform: "none", opacity: 1, transition: "transform 200ms ease-out, opacity 200ms" };
+      case "sortante":
+        return {
+          transform: geste ? transformDeSortie(geste) : "none",
+          opacity: 0.6,
+          transition: `transform ${DUREE_SORTIE_MS}ms ease-in, opacity ${DUREE_SORTIE_MS}ms`,
+        };
+    }
+  };
 
   return (
     /*
@@ -400,62 +443,65 @@ export function Paquet({
       </div>
 
       <div className="relative">
-        {suivante ? (
-          <div aria-hidden className="pointer-events-none absolute inset-0 origin-bottom scale-[.97] overflow-hidden opacity-80">
-            <ReviewCard
-              review={suivante}
-              readerName={readerName}
-              readerId={readerId}
-              readerWeighting={readerWeighting}
-            />
-          </div>
-        ) : null}
-
-        {/*
-          `touch-pan-y` : le doigt qui monte ou descend fait DÉFILER, comme partout ; seul un
-          mouvement horizontal nous parvient comme un geste. C'est ce qui rend une longue
-          carte lisible jusqu'au bout sur téléphone.
-        */}
-        <div
-          className="relative touch-pan-y"
-          style={{ transform, transition, opacity: sortie !== null ? 0.6 : 1 }}
-          onPointerDown={surPointerDown}
-          onPointerMove={surPointerMove}
-          onPointerUp={surPointerUp}
-          onPointerCancel={surPointerCancel}
-          onClickCapture={(evenement) => {
-            // Un glissement qui finit sur la carte ne doit pas l'ouvrir. La carte lit
-            // `defaultPrevented` avant de naviguer : c'est le contrat de CarteCliquable.
-            if (aBouge.current) {
-              evenement.preventDefault();
-              evenement.stopPropagation();
-              aBouge.current = false;
-            }
-          }}
-        >
-          {tampon !== null ? (
+        {pile.map(({ carte, role }) => {
+          const estCourante = role === "courante";
+          const tampon = estCourante ? tamponCourant : role === "sortante" ? sortante?.geste ?? null : null;
+          return (
+            /*
+              `touch-pan-y` : le doigt qui monte ou descend fait DÉFILER, comme partout ; seul un
+              mouvement horizontal nous parvient comme un geste. C'est ce qui rend une longue
+              carte lisible jusqu'au bout sur téléphone.
+            */
             <div
-              aria-hidden
-              className={`pointer-events-none absolute top-[22px] z-10 rounded-[8px] border-[3px] bg-surface px-s4 py-s2 text-[22px] font-extrabold tracking-[.04em] ${
-                tampon === "aime"
-                  ? "left-[18px] -rotate-12 border-positive text-positive"
-                  : tampon === "pas_pour_moi"
-                    ? "right-[18px] rotate-12 border-negative text-negative"
-                    : tampon === "souhait"
-                      ? "left-1/2 -translate-x-1/2 border-accent text-accent-text"
-                      : "left-1/2 -translate-x-1/2 border-border text-text-muted"
-              }`}
+              key={carte.id}
+              aria-hidden={!estCourante}
+              className={`touch-pan-y ${
+                role === roleEnFlux ? "relative" : "absolute inset-0"
+              } ${estCourante ? "" : "pointer-events-none overflow-hidden"} ${role === "sortante" ? "z-20" : ""}`}
+              style={styleDe(role, role === "sortante" ? sortante?.geste : undefined)}
+              onPointerDown={estCourante ? surPointerDown : undefined}
+              onPointerMove={estCourante ? surPointerMove : undefined}
+              onPointerUp={estCourante ? surPointerUp : undefined}
+              onPointerCancel={estCourante ? surPointerCancel : undefined}
+              onClickCapture={
+                estCourante
+                  ? (evenement) => {
+                      // Un glissement qui finit sur la carte ne doit pas l'ouvrir. La carte lit
+                      // `defaultPrevented` avant de naviguer : c'est le contrat de CarteCliquable.
+                      if (aBouge.current) {
+                        evenement.preventDefault();
+                        evenement.stopPropagation();
+                        aBouge.current = false;
+                      }
+                    }
+                  : undefined
+              }
             >
-              {LIBELLES_GESTE[tampon].tampon}
+              {tampon !== null ? (
+                <div
+                  aria-hidden
+                  className={`pointer-events-none absolute top-[22px] z-10 rounded-[8px] border-[3px] bg-surface px-s4 py-s2 text-[22px] font-extrabold tracking-[.04em] ${
+                    tampon === "aime"
+                      ? "left-[18px] -rotate-12 border-positive text-positive"
+                      : tampon === "pas_pour_moi"
+                        ? "right-[18px] rotate-12 border-negative text-negative"
+                        : tampon === "souhait"
+                          ? "left-1/2 -translate-x-1/2 border-accent text-accent-text"
+                          : "left-1/2 -translate-x-1/2 border-border text-text-muted"
+                  }`}
+                >
+                  {LIBELLES_GESTE[tampon].tampon}
+                </div>
+              ) : null}
+              <ReviewCard
+                review={carte}
+                readerName={readerName}
+                readerId={readerId}
+                readerWeighting={readerWeighting}
+              />
             </div>
-          ) : null}
-          <ReviewCard
-            review={courante}
-            readerName={readerName}
-            readerId={readerId}
-            readerWeighting={readerWeighting}
-          />
-        </div>
+          );
+        })}
       </div>
 
       {/*
@@ -490,7 +536,7 @@ export function Paquet({
               aria-label={LIBELLES_GESTE[geste].bouton}
               title={LIBELLES_GESTE[geste].bouton}
               onClick={() => lancer(geste)}
-              disabled={sortie !== null}
+              disabled={sortante !== null}
               className={`flex h-14 w-14 items-center justify-center rounded-full border ${style}`}
             >
               <Icone nom={geste} />
