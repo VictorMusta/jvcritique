@@ -294,16 +294,22 @@ export function Paquet({
     evenement.currentTarget.setPointerCapture(evenement.pointerId);
   };
 
+  /*
+   * AU DOIGT, SEUL L'HORIZONTAL EST UN GESTE. Un avis est plus haut qu'un écran de téléphone :
+   * le mouvement vertical, c'est le défilement, et il appartient au navigateur (`touch-pan-y`
+   * sur la carte). La première version confisquait tout — impossible de descendre jusqu'aux
+   * boutons, et un défilement un peu long devenait un « passer » involontaire. Le haut et le
+   * bas restent accessibles par les boutons et les flèches du clavier.
+   */
   const surPointerMove = (evenement: PointerEventReact<HTMLDivElement>) => {
     if (origine.current === null) {
       return;
     }
     const dx = evenement.clientX - origine.current.x;
-    const dy = evenement.clientY - origine.current.y;
-    if (Math.abs(dx) > TOLERANCE_CLIC_PX || Math.abs(dy) > TOLERANCE_CLIC_PX) {
+    if (Math.abs(dx) > TOLERANCE_CLIC_PX) {
       aBouge.current = true;
     }
-    setDeplacement({ dx, dy });
+    setDeplacement({ dx, dy: 0 });
   };
 
   const surPointerUp = (evenement: PointerEventReact<HTMLDivElement>) => {
@@ -311,15 +317,22 @@ export function Paquet({
       return;
     }
     const dx = evenement.clientX - origine.current.x;
-    const dy = evenement.clientY - origine.current.y;
     origine.current = null;
     setEnMain(false);
-    const geste = resoudreGeste(dx, dy);
+    const geste = resoudreGeste(dx, 0);
     if (geste !== null) {
       lancer(geste);
     } else {
       setDeplacement({ dx: 0, dy: 0 });
     }
+  };
+
+  // Le navigateur a pris la main (il fait défiler) : ce n'était pas un geste, on remet la carte.
+  const surPointerCancel = () => {
+    origine.current = null;
+    aBouge.current = false;
+    setEnMain(false);
+    setDeplacement({ dx: 0, dy: 0 });
   };
 
   if (mode === "fil") {
@@ -346,8 +359,14 @@ export function Paquet({
   const auteurs = [...new Set(cartes.slice(index).map((c) => c.author.name ?? "Quelqu’un"))];
 
   return (
-    <section aria-label="Avis non vus" className="mx-auto flex w-full max-w-[520px] flex-col gap-s4">
-      <header className="flex items-start justify-between gap-s3">
+    /*
+     * `pb-28` : la place de la barre de boutons, fixée au bas de l'écran. Sans cette marge,
+     * le bas de la carte — le lien « Lire l'avis en entier » — passerait dessous.
+     */
+    <section aria-label="Avis non vus" className="mx-auto flex w-full max-w-[520px] flex-col gap-s4 pb-28">
+      {/* L'en-tête reste collé en haut pendant qu'on fait défiler une longue carte : le compte
+          et « Fermer » ne sont jamais hors de portée. */}
+      <header className="sticky top-0 z-10 -mx-s5 -mt-s5 flex items-start justify-between gap-s3 bg-bg/95 px-s5 pt-s5 pb-s3 backdrop-blur">
         <div className="flex flex-col gap-[2px]">
           <p className="text-[13px] font-bold">{pluriel(restants, "avis non vu")}</p>
           <p className="text-[11px] text-text-muted">
@@ -382,7 +401,7 @@ export function Paquet({
 
       <div className="relative">
         {suivante ? (
-          <div aria-hidden className="pointer-events-none absolute inset-0 origin-bottom scale-[.97] opacity-80">
+          <div aria-hidden className="pointer-events-none absolute inset-0 origin-bottom scale-[.97] overflow-hidden opacity-80">
             <ReviewCard
               review={suivante}
               readerName={readerName}
@@ -393,16 +412,17 @@ export function Paquet({
         ) : null}
 
         {/*
-          `touch-none` sur la carte seule : sans lui, le navigateur prendrait un balayage
-          vertical pour un défilement de page. La page reste défilable partout ailleurs.
+          `touch-pan-y` : le doigt qui monte ou descend fait DÉFILER, comme partout ; seul un
+          mouvement horizontal nous parvient comme un geste. C'est ce qui rend une longue
+          carte lisible jusqu'au bout sur téléphone.
         */}
         <div
-          className="relative touch-none select-none"
+          className="relative touch-pan-y"
           style={{ transform, transition, opacity: sortie !== null ? 0.6 : 1 }}
           onPointerDown={surPointerDown}
           onPointerMove={surPointerMove}
           onPointerUp={surPointerUp}
-          onPointerCancel={surPointerUp}
+          onPointerCancel={surPointerCancel}
           onClickCapture={(evenement) => {
             // Un glissement qui finit sur la carte ne doit pas l'ouvrir. La carte lit
             // `defaultPrevented` avant de naviguer : c'est le contrat de CarteCliquable.
@@ -438,17 +458,22 @@ export function Paquet({
         </div>
       </div>
 
-      <p className="hidden text-center text-[11px] text-text-muted sm:block">
-        ← pas pour moi · ↓ passer · ↑ à souhaiter · → j’aime · Entrée pour lire · Échap pour fermer
-      </p>
-
       {/*
         Règle 2 : les boutons sont le chemin accessible. Quatre, dans l'ordre des flèches du
         clavier — gauche, bas, haut, droite — pour que la main et l'œil apprennent la même chose.
         Le fond fait partie du style de chaque bouton : deux classes de fond sur le même élément
         se disputent, et c'est le blanc qui gagnait — le cœur, clair, disparaissait dessus.
+
+        LA BARRE EST FIXÉE AU BAS DE L'ÉCRAN, juste au-dessus de la navigation (qui occupe les
+        80 px que la mise en page lui réserve). Posés sous la carte, les boutons partaient
+        hors écran dès que l'avis dépassait la hauteur du téléphone — Victor les a vus
+        « disparaître ». Ici, ils ne bougent pas, quelle que soit la longueur de l'avis.
       */}
-      <div className="flex justify-center gap-s4">
+      <div className="fixed inset-x-0 bottom-0 z-10 flex flex-col items-center gap-s2 border-t border-border/40 bg-bg/95 px-s4 pt-s3 pb-[62px] backdrop-blur">
+        <p className="hidden text-center text-[11px] text-text-muted sm:block">
+          ← pas pour moi · ↓ passer · ↑ à souhaiter · → j’aime · Entrée pour lire · Échap pour fermer
+        </p>
+        <div className="flex justify-center gap-s4">
         {ORDRE_BOUTONS.map((geste) => {
           const style =
             geste === "aime"
@@ -472,6 +497,7 @@ export function Paquet({
             </button>
           );
         })}
+        </div>
       </div>
 
       <p className="sr-only" aria-live="polite">
