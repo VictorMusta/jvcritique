@@ -54,7 +54,12 @@ type Mode = "paquet" | "bilan" | "fil";
 
 const COMPTE_VIDE: Compte = { aime: 0, pas_pour_moi: 0, souhait: 0, passer: 0 };
 /** L'ordre des boutons à l'écran : celui des flèches, gauche → bas → haut → droite. */
-const ORDRE_BOUTONS: readonly Geste[] = ["pas_pour_moi", "passer", "souhait", "aime"];
+const ORDRE_BOUTONS: readonly Geste[] = [
+  "pas_pour_moi",
+  "passer",
+  "souhait",
+  "aime",
+];
 const DUREE_SORTIE_MS = 220;
 /*
  * LA POSE DU TAMPON, au bouton et au clavier : il s'abat, la carte encaisse, puis on laisse
@@ -75,7 +80,13 @@ const ICONES: Readonly<Record<Geste | "croix", string>> = {
   croix: "M18 6L6 18M6 6l12 12",
 };
 
-function Icone({ nom, taille = 22 }: { readonly nom: Geste | "croix"; readonly taille?: number }) {
+function Icone({
+  nom,
+  taille = 22,
+}: {
+  readonly nom: Geste | "croix";
+  readonly taille?: number;
+}) {
   return (
     <svg
       width={taille}
@@ -123,21 +134,34 @@ function Bilan({
   const parts: string[] = [];
   if (compte.aime > 0) parts.push(pluriel(compte.aime, "aimé"));
   if (compte.souhait > 0) parts.push(`${compte.souhait} à souhaiter`);
-  if (compte.pas_pour_moi > 0) parts.push(`${compte.pas_pour_moi} pas pour toi`);
+  if (compte.pas_pour_moi > 0)
+    parts.push(`${compte.pas_pour_moi} pas pour toi`);
   if (compte.passer > 0) parts.push(pluriel(compte.passer, "passé"));
 
   return (
     <section
       aria-live="polite"
-      className="orne relative mx-auto flex w-full max-w-[520px] flex-col items-center gap-s4 rounded-md bg-surface p-s6 text-center"
+      className="orne gap-s4 bg-surface p-s6 relative mx-auto flex w-full max-w-[520px] flex-col items-center rounded-md text-center"
     >
-      <span className="flex h-14 w-14 items-center justify-center rounded-full bg-positive text-on-accent">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <span className="bg-positive text-on-accent flex h-14 w-14 items-center justify-center rounded-full">
+        <svg
+          width="28"
+          height="28"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.4"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden
+        >
           <path d="M20 6L9 17l-5-5" />
         </svg>
       </span>
-      <h2 className="font-display text-[24px] font-semibold leading-tight">Tout est vu.</h2>
-      <p className="text-[13px] leading-relaxed text-text-muted">
+      <h2 className="font-display text-[24px] leading-tight font-semibold">
+        Tout est vu.
+      </h2>
+      <p className="text-text-muted text-[13px] leading-relaxed">
         {/* « avis » est invariable : pas de pluriel automatique ici. */}
         {total} avis {total > 1 ? "parcourus" : "parcouru"}
         {parts.length > 0 ? ` : ${parts.join(", ")}.` : "."}
@@ -145,11 +169,13 @@ function Bilan({
       <button
         type="button"
         onClick={surVoirLeFil}
-        className="mt-s2 flex min-h-[44px] w-full items-center justify-center gap-s2 rounded-full bg-accent px-s5 text-[13px] font-semibold text-on-accent"
+        className="mt-s2 gap-s2 bg-accent px-s5 text-on-accent flex min-h-[44px] w-full items-center justify-center rounded-full text-[13px] font-semibold"
       >
         Voir le fil <span aria-hidden>→</span>
       </button>
-      <p className="text-[11px] text-text-muted">Le fil s’affiche tout seul dans quelques secondes.</p>
+      <p className="text-text-muted text-[11px]">
+        Le fil s’affiche tout seul dans quelques secondes.
+      </p>
     </section>
   );
 }
@@ -174,7 +200,9 @@ export function Paquet({
   const [index, setIndex] = useState(0);
   // Rien à voir à l'ouverture : le fil, tout de suite. Décidé ICI et une fois, parce que le
   // parent rend ce composant même sans cartes — voir FilOuPaquet, dans la page.
-  const [mode, setMode] = useState<Mode>(() => (cartesInitiales.length > 0 ? "paquet" : "fil"));
+  const [mode, setMode] = useState<Mode>(() =>
+    cartesInitiales.length > 0 ? "paquet" : "fil",
+  );
   const [compte, setCompte] = useState<Compte>(COMPTE_VIDE);
   const [deplacement, setDeplacement] = useState({ dx: 0, dy: 0 });
   const [enMain, setEnMain] = useState(false);
@@ -185,16 +213,20 @@ export function Paquet({
    * propre élément (clé = identifiant de l'avis) : celle qu'on balaie part pour de bon, celle
    * qui attendait derrière monte à sa place.
    */
-  const [sortante, setSortante] = useState<{ carte: ReviewForDisplay; geste: Geste } | null>(
-    null,
-  );
+  const [sortante, setSortante] = useState<{
+    carte: ReviewForDisplay;
+    geste: Geste;
+  } | null>(null);
   /*
    * LE TEMPS DE LA POSE. Entre le clic et le départ, la carte reste en place avec son tampon
    * qui s'abat dessus. C'est un état à part et non un simple retard, parce que pendant ce
    * temps-là l'écran doit montrer quelque chose de précis : la carte immobile, le tampon
    * animé, et aucune autre action acceptée.
    */
-  const [pose, setPose] = useState<{ carte: ReviewForDisplay; geste: Geste } | null>(null);
+  const [pose, setPose] = useState<{
+    carte: ReviewForDisplay;
+    geste: Geste;
+  } | null>(null);
   const [, startTransition] = useTransition();
 
   const origine = useRef<{ x: number; y: number } | null>(null);
@@ -202,12 +234,13 @@ export function Paquet({
   const mouvementReduit = useRef(false);
 
   useEffect(() => {
-    mouvementReduit.current = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    mouvementReduit.current = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
   }, []);
 
   const total = cartes.length;
   const courante = cartes[index];
-  const suivante = cartes[index + 1];
 
   /*
    * Rendre la main au fil. `router.refresh()` redemande la page au serveur : les réactions
@@ -399,39 +432,77 @@ export function Paquet({
    * Le tampon de la carte courante : celui de la pose en cours, sinon celui que le
    * déplacement du doigt annonce déjà. La carte qui part garde le sien.
    */
-  const tamponCourant = pose ? pose.geste : enMain ? resoudreGeste(deplacement.dx, deplacement.dy, SEUIL_GESTE / 2) : null;
+  const tamponCourant = pose
+    ? pose.geste
+    : enMain
+      ? resoudreGeste(deplacement.dx, deplacement.dy, SEUIL_GESTE / 2)
+      : null;
   const restants = total - index;
-  const auteurs = [...new Set(cartes.slice(index).map((c) => c.author.name ?? "Quelqu’un"))];
+  const auteurs = [
+    ...new Set(cartes.slice(index).map((c) => c.author.name ?? "Quelqu’un")),
+  ];
 
   /*
-   * LA PILE : de bas en haut, la carte d'après, la courante, celle qui s'en va. Chaque élément
-   * est identifié par son avis, et React garde l'élément quand son rôle change — c'est ce qui
-   * fait que « derrière » devient « courante » en glissant vers l'avant, et que la sortante
-   * poursuit son mouvement depuis l'endroit où le doigt l'a lâchée.
+   * LA PILE, ET SURTOUT L'ORDRE DU DOM.
+   *
+   * Trois cartes au plus sont rendues : celle qui s'en va, la courante, celle d'après. Elles
+   * sont écrites DANS L'ORDRE DU PAQUET, de la plus ancienne à la plus récente, et l'empilement
+   * visuel est réglé par le seul `z-index`.
+   *
+   * Cet ordre-là n'est pas un détail de style : DÉPLACER UN NŒUD DANS LE DOM ANNULE SES
+   * TRANSITIONS. La première version écrivait la pile de l'arrière vers l'avant, donc la carte
+   * qu'on venait de balayer changeait de place entre deux rendus — React la déplaçait, le
+   * navigateur annulait sa transition, et la carte disparaissait au lieu de glisser. Victor
+   * l'a vu tout de suite : « la card disparaît tout simplement après l'animation du stamp ».
+   *
+   * En ordre croissant, avancer d'une carte retire le premier nœud et ajoute un nœud à la fin :
+   * aucun de ceux qui restent ne bouge, et leurs transitions courent jusqu'au bout.
    */
   type Role = "derriere" | "courante" | "sortante";
   const pile: { carte: ReviewForDisplay; role: Role }[] = [];
-  if (suivante && suivante.id !== sortante?.carte.id) {
-    pile.push({ carte: suivante, role: "derriere" });
-  }
-  if (courante.id !== sortante?.carte.id) {
-    pile.push({ carte: courante, role: "courante" });
-  }
-  if (sortante) {
-    pile.push({ carte: sortante.carte, role: "sortante" });
+  for (let i = index - 1; i <= index + 1; i++) {
+    const carte = cartes[i];
+    if (!carte) {
+      continue;
+    }
+    const estSortante = carte.id === sortante?.carte.id;
+    // Une carte déjà traitée dont la sortie est terminée n'a plus rien à faire là.
+    if (i < index && !estSortante) {
+      continue;
+    }
+    pile.push({
+      carte,
+      role: estSortante ? "sortante" : i === index ? "courante" : "derriere",
+    });
   }
   // Une seule carte donne sa hauteur au conteneur : la courante, ou la sortante s'il n'en
   // reste plus (le dernier avis qui s'en va, avant le bilan).
-  const roleEnFlux: Role = pile.some((p) => p.role === "courante") ? "courante" : "sortante";
+  const roleEnFlux: Role = pile.some((p) => p.role === "courante")
+    ? "courante"
+    : "sortante";
 
-  const styleDe = (role: Role, geste: Geste | undefined): React.CSSProperties => {
+  const styleDe = (
+    role: Role,
+    geste: Geste | undefined,
+  ): React.CSSProperties => {
     switch (role) {
       case "derriere":
-        return { transform: "scale(.97)", opacity: 0.8, transition: "transform 200ms ease-out, opacity 200ms" };
+        return {
+          transform: "scale(.97)",
+          opacity: 0.8,
+          transition: "transform 200ms ease-out, opacity 200ms",
+        };
       case "courante":
         return enMain
-          ? { transform: `translate(${deplacement.dx}px, 0) rotate(${deplacement.dx / 18}deg)`, transition: "none" }
-          : { transform: "none", opacity: 1, transition: "transform 200ms ease-out, opacity 200ms" };
+          ? {
+              transform: `translate(${deplacement.dx}px, 0) rotate(${deplacement.dx / 18}deg)`,
+              transition: "none",
+            }
+          : {
+              transform: "none",
+              opacity: 1,
+              transition: "transform 200ms ease-out, opacity 200ms",
+            };
       case "sortante":
         return {
           transform: geste ? transformDeSortie(geste) : "none",
@@ -446,36 +517,46 @@ export function Paquet({
      * `pb-28` : la place de la barre de boutons, fixée au bas de l'écran. Sans cette marge,
      * le bas de la carte — le lien « Lire l'avis en entier » — passerait dessous.
      */
-    <section aria-label="Avis non vus" className="mx-auto flex w-full max-w-[520px] flex-col gap-s4 pb-28">
+    <section
+      aria-label="Avis non vus"
+      className="gap-s4 mx-auto flex w-full max-w-[520px] flex-col pb-28"
+    >
       {/* L'en-tête reste collé en haut pendant qu'on fait défiler une longue carte : le compte
           et « Fermer » ne sont jamais hors de portée. */}
-      <header className="sticky top-0 z-10 -mx-s5 -mt-s5 flex items-start justify-between gap-s3 bg-bg/95 px-s5 pt-s5 pb-s3 backdrop-blur">
+      <header className="-mx-s5 -mt-s5 gap-s3 bg-bg/95 px-s5 pt-s5 pb-s3 sticky top-0 z-10 flex items-start justify-between backdrop-blur">
         <div className="flex flex-col gap-[2px]">
-          <p className="text-[13px] font-bold">{pluriel(restants, "avis non vu")}</p>
-          <p className="text-[11px] text-text-muted">
+          <p className="text-[13px] font-bold">
+            {pluriel(restants, "avis non vu")}
+          </p>
+          <p className="text-text-muted text-[11px]">
             par {auteurs.slice(0, 3).join(", ")}
-            {auteurs.length > 3 ? ` et ${auteurs.length - 3} autre${auteurs.length - 3 > 1 ? "s" : ""}` : ""}
+            {auteurs.length > 3
+              ? ` et ${auteurs.length - 3} autre${auteurs.length - 3 > 1 ? "s" : ""}`
+              : ""}
           </p>
         </div>
         <button
           type="button"
           onClick={rendreLaMain}
-          className="flex min-h-[36px] shrink-0 items-center gap-s2 rounded-full border border-accent px-s4 text-[12px] font-semibold text-accent-text"
+          className="gap-s2 border-accent px-s4 text-accent-text flex min-h-[36px] shrink-0 items-center rounded-full border text-[12px] font-semibold"
         >
           Fermer <Icone nom="croix" taille={14} />
         </button>
       </header>
 
       <div
-        className="flex items-center gap-s3"
+        className="gap-s3 flex items-center"
         role="progressbar"
         aria-label="Avancement du paquet"
         aria-valuemin={0}
         aria-valuemax={total}
         aria-valuenow={index}
       >
-        <span className="h-[6px] flex-1 overflow-hidden rounded-full bg-surface-raised">
-          <span className="block h-full bg-accent" style={{ width: `${(index / total) * 100}%` }} />
+        <span className="bg-surface-raised h-[6px] flex-1 overflow-hidden rounded-full">
+          <span
+            className="bg-accent block h-full"
+            style={{ width: `${(index / total) * 100}%` }}
+          />
         </span>
         <span className="tnum text-[12px] font-semibold">
           {index} / {total}
@@ -485,7 +566,11 @@ export function Paquet({
       <div className="relative">
         {pile.map(({ carte, role }) => {
           const estCourante = role === "courante";
-          const tampon = estCourante ? tamponCourant : role === "sortante" ? sortante?.geste ?? null : null;
+          const tampon = estCourante
+            ? tamponCourant
+            : role === "sortante"
+              ? (sortante?.geste ?? null)
+              : null;
           return (
             /*
               `touch-pan-y` : le doigt qui monte ou descend fait DÉFILER, comme partout ; seul un
@@ -495,12 +580,25 @@ export function Paquet({
             <div
               key={carte.id}
               aria-hidden={!estCourante}
+              /*
+                LA CARTE QUI PART GARDE SA TAILLE. `inset-0` la contraignait à la hauteur de
+                la carte qui vient de prendre sa place, et `overflow-hidden` la rognait :
+                une carte haute s'écrasait d'un coup avant de glisser, ce qui se lisait comme
+                « elle disparaît » plutôt que « elle s'en va ». Elle est donc posée par le
+                haut, sans hauteur imposée et sans rognage. Celle de derrière, elle, reste
+                rognée à la hauteur du cadre — sinon elle dépasse sous la carte courante.
+              */
               className={`touch-pan-y ${
-                role === roleEnFlux ? "relative" : "absolute inset-0"
-              } ${estCourante ? "" : "pointer-events-none overflow-hidden"} ${role === "sortante" ? "z-20" : ""} ${
-                estCourante && pose ? "paquet-carte-secousse" : ""
-              }`}
-              style={styleDe(role, role === "sortante" ? sortante?.geste : undefined)}
+                role === roleEnFlux
+                  ? "relative z-10"
+                  : role === "sortante"
+                    ? "absolute inset-x-0 top-0 z-20"
+                    : "absolute inset-x-0 top-0 max-h-full overflow-hidden"
+              } ${estCourante ? "" : "pointer-events-none"}`}
+              style={styleDe(
+                role,
+                role === "sortante" ? sortante?.geste : undefined,
+              )}
               onPointerDown={estCourante ? surPointerDown : undefined}
               onPointerMove={estCourante ? surPointerMove : undefined}
               onPointerUp={estCourante ? surPointerUp : undefined}
@@ -519,46 +617,55 @@ export function Paquet({
                   : undefined
               }
             >
-              {tampon !== null ? (
-                /*
-                 * `--tampon-rotation` porte l'inclinaison propre à chaque tampon, et
-                 * l'animation la reprend : sans elle, les images-clés remettraient le tampon
-                 * droit, puisqu'une animation de `transform` écrase la rotation de la classe.
-                 * Le point d'origine est le coin par lequel le tampon « frappe ».
-                 */
-                <div
-                  aria-hidden
-                  style={
-                    {
-                      "--tampon-rotation":
-                        tampon === "aime"
-                          ? "rotate(-12deg)"
-                          : tampon === "pas_pour_moi"
-                            ? "rotate(12deg)"
-                            : "translateX(-50%)",
-                      transform: "var(--tampon-rotation)",
-                      transformOrigin: tampon === "aime" ? "left top" : tampon === "pas_pour_moi" ? "right top" : "center top",
-                    } as React.CSSProperties
-                  }
-                  className={`pointer-events-none absolute top-[22px] z-10 whitespace-nowrap rounded-[8px] border-[3px] bg-surface px-s4 py-s2 text-[22px] font-extrabold tracking-[.04em] ${
-                    tampon === "aime"
-                      ? "left-[18px] border-positive text-positive"
-                      : tampon === "pas_pour_moi"
-                        ? "right-[18px] border-negative text-negative"
-                        : tampon === "souhait"
-                          ? "left-1/2 border-accent text-accent-text"
-                          : "left-1/2 border-border text-text-muted"
-                  } ${estCourante && pose ? "paquet-tampon-pose" : ""}`}
-                >
-                  {LIBELLES_GESTE[tampon].tampon}
-                </div>
-              ) : null}
-              <ReviewCard
-                review={carte}
-                readerName={readerName}
-                readerId={readerId}
-                readerWeighting={readerWeighting}
-              />
+              <div
+                className={`relative ${estCourante && pose ? "paquet-carte-secousse" : ""}`}
+              >
+                {tampon !== null ? (
+                  /*
+                   * `--tampon-rotation` porte l'inclinaison propre à chaque tampon, et
+                   * l'animation la reprend : sans elle, les images-clés remettraient le tampon
+                   * droit, puisqu'une animation de `transform` écrase la rotation de la classe.
+                   * Le point d'origine est le coin par lequel le tampon « frappe ».
+                   */
+                  <div
+                    aria-hidden
+                    style={
+                      {
+                        "--tampon-rotation":
+                          tampon === "aime"
+                            ? "rotate(-12deg)"
+                            : tampon === "pas_pour_moi"
+                              ? "rotate(12deg)"
+                              : "translateX(-50%)",
+                        transform: "var(--tampon-rotation)",
+                        transformOrigin:
+                          tampon === "aime"
+                            ? "left top"
+                            : tampon === "pas_pour_moi"
+                              ? "right top"
+                              : "center top",
+                      } as React.CSSProperties
+                    }
+                    className={`bg-surface px-s4 py-s2 pointer-events-none absolute top-[22px] z-10 rounded-[8px] border-[3px] text-[22px] font-extrabold tracking-[.04em] whitespace-nowrap ${
+                      tampon === "aime"
+                        ? "border-positive text-positive left-[18px]"
+                        : tampon === "pas_pour_moi"
+                          ? "border-negative text-negative right-[18px]"
+                          : tampon === "souhait"
+                            ? "border-accent text-accent-text left-1/2"
+                            : "border-border text-text-muted left-1/2"
+                    } ${estCourante && pose ? "paquet-tampon-pose" : ""}`}
+                  >
+                    {LIBELLES_GESTE[tampon].tampon}
+                  </div>
+                ) : null}
+                <ReviewCard
+                  review={carte}
+                  readerName={readerName}
+                  readerId={readerId}
+                  readerWeighting={readerWeighting}
+                />
+              </div>
             </div>
           );
         })}
@@ -575,39 +682,41 @@ export function Paquet({
         hors écran dès que l'avis dépassait la hauteur du téléphone — Victor les a vus
         « disparaître ». Ici, ils ne bougent pas, quelle que soit la longueur de l'avis.
       */}
-      <div className="fixed inset-x-0 bottom-0 z-10 flex flex-col items-center gap-s2 border-t border-border/40 bg-bg/95 px-s4 pt-s3 pb-[62px] backdrop-blur">
-        <p className="hidden text-center text-[11px] text-text-muted sm:block">
-          ← pas pour moi · ↓ passer · ↑ à souhaiter · → j’aime · Entrée pour lire · Échap pour fermer
+      <div className="gap-s2 border-border/40 bg-bg/95 px-s4 pt-s3 fixed inset-x-0 bottom-0 z-10 flex flex-col items-center border-t pb-[62px] backdrop-blur">
+        <p className="text-text-muted hidden text-center text-[11px] sm:block">
+          ← pas pour moi · ↓ passer · ↑ à souhaiter · → j’aime · Entrée pour
+          lire · Échap pour fermer
         </p>
-        <div className="flex justify-center gap-s4">
-        {ORDRE_BOUTONS.map((geste) => {
-          const style =
-            geste === "aime"
-              ? "border-positive bg-positive text-on-accent"
-              : geste === "pas_pour_moi"
-                ? "border-negative bg-surface text-negative"
-                : geste === "passer"
-                  ? "border-border bg-surface text-text-muted"
-                  : "border-accent bg-surface text-accent-text";
-          return (
-            <button
-              key={geste}
-              type="button"
-              aria-label={LIBELLES_GESTE[geste].bouton}
-              title={LIBELLES_GESTE[geste].bouton}
-              onClick={() => lancer(geste)}
-              disabled={sortante !== null}
-              className={`flex h-14 w-14 items-center justify-center rounded-full border ${style}`}
-            >
-              <Icone nom={geste} />
-            </button>
-          );
-        })}
+        <div className="gap-s4 flex justify-center">
+          {ORDRE_BOUTONS.map((geste) => {
+            const style =
+              geste === "aime"
+                ? "border-positive bg-positive text-on-accent"
+                : geste === "pas_pour_moi"
+                  ? "border-negative bg-surface text-negative"
+                  : geste === "passer"
+                    ? "border-border bg-surface text-text-muted"
+                    : "border-accent bg-surface text-accent-text";
+            return (
+              <button
+                key={geste}
+                type="button"
+                aria-label={LIBELLES_GESTE[geste].bouton}
+                title={LIBELLES_GESTE[geste].bouton}
+                onClick={() => lancer(geste)}
+                disabled={sortante !== null}
+                className={`flex h-14 w-14 items-center justify-center rounded-full border ${style}`}
+              >
+                <Icone nom={geste} />
+              </button>
+            );
+          })}
         </div>
       </div>
 
       <p className="sr-only" aria-live="polite">
-        Avis {index + 1} sur {total} : {courante.game.title}, par {courante.author.name ?? "quelqu’un"}.
+        Avis {index + 1} sur {total} : {courante.game.title}, par{" "}
+        {courante.author.name ?? "quelqu’un"}.
       </p>
     </section>
   );
