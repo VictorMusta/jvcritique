@@ -56,6 +56,13 @@ const COMPTE_VIDE: Compte = { aime: 0, pas_pour_moi: 0, souhait: 0, passer: 0 };
 /** L'ordre des boutons à l'écran : celui des flèches, gauche → bas → haut → droite. */
 const ORDRE_BOUTONS: readonly Geste[] = ["pas_pour_moi", "passer", "souhait", "aime"];
 const DUREE_SORTIE_MS = 220;
+/*
+ * LA POSE DU TAMPON, au bouton et au clavier : il s'abat, la carte encaisse, puis on laisse
+ * le temps de lire avant le départ. Les deux durées ont leur pendant dans globals.css
+ * (`paquet-tampon-pose`, `paquet-carte-secousse`) et doivent rester d'accord avec lui.
+ */
+const DUREE_POSE_MS = 380;
+const DELAI_LECTURE_MS = 250;
 const DELAI_BILAN_MS = 3000;
 /** Au-delà de ce déplacement, un relâchement n'est plus un clic sur la carte. */
 const TOLERANCE_CLIC_PX = 6;
@@ -181,6 +188,13 @@ export function Paquet({
   const [sortante, setSortante] = useState<{ carte: ReviewForDisplay; geste: Geste } | null>(
     null,
   );
+  /*
+   * LE TEMPS DE LA POSE. Entre le clic et le départ, la carte reste en place avec son tampon
+   * qui s'abat dessus. C'est un état à part et non un simple retard, parce que pendant ce
+   * temps-là l'écran doit montrer quelque chose de précis : la carte immobile, le tampon
+   * animé, et aucune autre action acceptée.
+   */
+  const [pose, setPose] = useState<{ carte: ReviewForDisplay; geste: Geste } | null>(null);
   const [, startTransition] = useTransition();
 
   const origine = useRef<{ x: number; y: number } | null>(null);
@@ -207,16 +221,37 @@ export function Paquet({
     router.refresh();
   }, [router]);
 
+  /** Le départ : la carte s'en va, la suivante prend sa place. */
+  const partir = useCallback(
+    (carte: ReviewForDisplay, geste: Geste, derniere: boolean) => {
+      setSortante({ carte, geste });
+      if (!derniere) {
+        setIndex((i) => i + 1);
+      }
+      window.setTimeout(() => {
+        setSortante(null);
+        if (derniere) {
+          setMode("bilan");
+        }
+      }, DUREE_SORTIE_MS);
+    },
+    [],
+  );
+
   const lancer = useCallback(
-    (geste: Geste) => {
+    (geste: Geste, { immediat = false }: { immediat?: boolean } = {}) => {
       const carte = cartes[index];
-      // Règle 3 : rien pendant la sortie.
-      if (!carte || sortante !== null || mode !== "paquet") {
+      // Règle 3 : rien pendant la pose ni pendant la sortie.
+      if (!carte || pose !== null || sortante !== null || mode !== "paquet") {
         return;
       }
       startTransition(async () => {
-        // Un échec ici n'est pas montré : au pire, l'avis n'est pas marqué et reviendra dans
-        // le prochain paquet, où un geste le marquera.
+        // Envoyé DÈS LE GESTE, pas à la fin de l'animation : entre les deux il y a plus d'une
+        // demi-seconde, et une personne qui ferme le paquet dans cet intervalle a bel et bien
+        // donné son avis.
+        //
+        // Un échec n'est pas montré : au pire, l'avis n'est pas marqué et reviendra dans le
+        // prochain paquet, où un geste le marquera.
         await traiterCarteAction(carte.id, geste);
       });
       setCompte((c) => ({ ...c, [geste]: c[geste] + 1 }));
@@ -233,19 +268,23 @@ export function Paquet({
         }
         return;
       }
-      // La carte part ; la suivante devient courante TOUT DE SUITE, sous celle qui s'en va.
-      setSortante({ carte, geste });
-      if (!derniere) {
-        setIndex(index + 1);
+      /*
+       * AU DOIGT, DÉPART IMMÉDIAT : le tampon a été visible pendant tout le glissement, et
+       * la main a déjà emmené la carte — la retenir pour rejouer une pose serait un
+       * contresens. Au bouton et au clavier, en revanche, rien n'a précédé le clic : le
+       * tampon s'abat, la carte tremble, et on laisse le temps de lire avant le départ.
+       */
+      if (immediat) {
+        partir(carte, geste, derniere);
+        return;
       }
+      setPose({ carte, geste });
       window.setTimeout(() => {
-        setSortante(null);
-        if (derniere) {
-          setMode("bilan");
-        }
-      }, DUREE_SORTIE_MS);
+        setPose(null);
+        partir(carte, geste, derniere);
+      }, DUREE_POSE_MS + DELAI_LECTURE_MS);
     },
-    [cartes, index, mode, sortante, total],
+    [cartes, index, mode, partir, pose, sortante, total],
   );
 
   // Le clavier, sur PC : les flèches doublent les quatre boutons, Entrée ouvre, Échap ferme.
@@ -332,7 +371,7 @@ export function Paquet({
     setEnMain(false);
     const geste = resoudreGeste(dx, 0);
     if (geste !== null) {
-      lancer(geste);
+      lancer(geste, { immediat: true });
     } else {
       setDeplacement({ dx: 0, dy: 0 });
     }
@@ -356,10 +395,11 @@ export function Paquet({
     return <>{children}</>;
   }
 
-  // Le tampon : celui que le déplacement annonce déjà (la carte qui part garde le sien).
-  const tamponCourant = enMain
-    ? resoudreGeste(deplacement.dx, deplacement.dy, SEUIL_GESTE / 2)
-    : null;
+  /*
+   * Le tampon de la carte courante : celui de la pose en cours, sinon celui que le
+   * déplacement du doigt annonce déjà. La carte qui part garde le sien.
+   */
+  const tamponCourant = pose ? pose.geste : enMain ? resoudreGeste(deplacement.dx, deplacement.dy, SEUIL_GESTE / 2) : null;
   const restants = total - index;
   const auteurs = [...new Set(cartes.slice(index).map((c) => c.author.name ?? "Quelqu’un"))];
 
@@ -457,7 +497,9 @@ export function Paquet({
               aria-hidden={!estCourante}
               className={`touch-pan-y ${
                 role === roleEnFlux ? "relative" : "absolute inset-0"
-              } ${estCourante ? "" : "pointer-events-none overflow-hidden"} ${role === "sortante" ? "z-20" : ""}`}
+              } ${estCourante ? "" : "pointer-events-none overflow-hidden"} ${role === "sortante" ? "z-20" : ""} ${
+                estCourante && pose ? "paquet-carte-secousse" : ""
+              }`}
               style={styleDe(role, role === "sortante" ? sortante?.geste : undefined)}
               onPointerDown={estCourante ? surPointerDown : undefined}
               onPointerMove={estCourante ? surPointerMove : undefined}
@@ -478,17 +520,35 @@ export function Paquet({
               }
             >
               {tampon !== null ? (
+                /*
+                 * `--tampon-rotation` porte l'inclinaison propre à chaque tampon, et
+                 * l'animation la reprend : sans elle, les images-clés remettraient le tampon
+                 * droit, puisqu'une animation de `transform` écrase la rotation de la classe.
+                 * Le point d'origine est le coin par lequel le tampon « frappe ».
+                 */
                 <div
                   aria-hidden
-                  className={`pointer-events-none absolute top-[22px] z-10 rounded-[8px] border-[3px] bg-surface px-s4 py-s2 text-[22px] font-extrabold tracking-[.04em] ${
+                  style={
+                    {
+                      "--tampon-rotation":
+                        tampon === "aime"
+                          ? "rotate(-12deg)"
+                          : tampon === "pas_pour_moi"
+                            ? "rotate(12deg)"
+                            : "translateX(-50%)",
+                      transform: "var(--tampon-rotation)",
+                      transformOrigin: tampon === "aime" ? "left top" : tampon === "pas_pour_moi" ? "right top" : "center top",
+                    } as React.CSSProperties
+                  }
+                  className={`pointer-events-none absolute top-[22px] z-10 whitespace-nowrap rounded-[8px] border-[3px] bg-surface px-s4 py-s2 text-[22px] font-extrabold tracking-[.04em] ${
                     tampon === "aime"
-                      ? "left-[18px] -rotate-12 border-positive text-positive"
+                      ? "left-[18px] border-positive text-positive"
                       : tampon === "pas_pour_moi"
-                        ? "right-[18px] rotate-12 border-negative text-negative"
+                        ? "right-[18px] border-negative text-negative"
                         : tampon === "souhait"
-                          ? "left-1/2 -translate-x-1/2 border-accent text-accent-text"
-                          : "left-1/2 -translate-x-1/2 border-border text-text-muted"
-                  }`}
+                          ? "left-1/2 border-accent text-accent-text"
+                          : "left-1/2 border-border text-text-muted"
+                  } ${estCourante && pose ? "paquet-tampon-pose" : ""}`}
                 >
                   {LIBELLES_GESTE[tampon].tampon}
                 </div>
