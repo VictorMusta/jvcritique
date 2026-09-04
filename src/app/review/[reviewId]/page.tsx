@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 
 import { DomainBars } from "~/components/domain-bars";
 import { Comments, type CommentForDisplay } from "~/components/comments";
+import { MarqueVu } from "~/components/marque-vu";
 import { Reactions } from "~/components/reactions";
 import { ScreenshotGallery } from "~/components/screenshot-gallery";
 import { ScorePair } from "~/components/score-pair";
@@ -228,6 +229,10 @@ export default async function ReviewPage({
 
   return (
     <main className="flex flex-col gap-s4 p-s3">
+      {/* Ouvrir l'avis en entier le marque « vu » — pour le paquet. Jamais pour son auteur. */}
+      {reader.userId !== null && reader.userId !== review.author.id ? (
+        <MarqueVu reviewId={review.id} />
+      ) : null}
       {/* Tout le corps de l'avis sur UNE surface opaque : sans elle, le titre, les notes
           et les textes se lisaient sur le damier. */}
       <div className="panneau orne relative flex flex-col gap-s5 p-s5">

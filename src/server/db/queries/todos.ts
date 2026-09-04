@@ -55,6 +55,17 @@ export async function basculerTodo(
  * une fois par avis donnerait vingt requêtes pour une information de vingt octets. C'est la
  * même contrainte qui avait imposé le chargement groupé des pondérations.
  */
+/**
+ * Ajoute un jeu à la liste, sans le retirer s'il y est déjà.
+ *
+ * `basculerTodo` inverse l'état — c'est le bon geste pour un bouton qu'on presse deux fois.
+ * Depuis le paquet, « à souhaiter » veut toujours dire AJOUTER : un jeu déjà dans la liste
+ * doit y rester, pas en sortir parce qu'on a balayé vers le haut une seconde fois.
+ */
+export async function ajouterTodo(userId: string, gameId: string): Promise<void> {
+  await db.insert(gameTodos).values({ userId, gameId }).onConflictDoNothing();
+}
+
 export async function todosParmi(
   userId: string | null,
   gameIds: readonly string[],

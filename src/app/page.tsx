@@ -4,8 +4,9 @@ import { SignInButton } from "~/components/auth-buttons";
 import { InstallPrompt } from "~/components/install-prompt";
 import { ThemeOnboarding } from "~/components/theme-onboarding";
 import { cookies } from "next/headers";
+import { Paquet } from "~/components/paquet";
 import { ReviewCard } from "~/components/review-card";
-import { getFeed } from "~/server/db/queries/reviews";
+import { getAvisNonVus, getFeed } from "~/server/db/queries/reviews";
 import { getReaderContext } from "~/server/reader";
 
 /**
@@ -22,6 +23,12 @@ export const dynamic = "force-dynamic";
 export default async function FeedPage() {
   const reader = await getReaderContext();
   const feed = await getFeed(reader.userId);
+  /*
+   * LE PAQUET D'ABORD. S'il reste des avis non vus, le Fil s'ouvre dessus : une carte à la
+   * fois, quatre gestes, puis le fil. Le fil est rendu quand même — le paquet le reçoit en
+   * enfant et l'affiche quand il rend la main, sans second aller-retour.
+   */
+  const nonVus = reader.userId === null ? [] : await getAvisNonVus(reader.userId);
 
   /*
    * L'accueil se déclenche sur l'ABSENCE de cookie, pas sur une date d'inscription.
@@ -83,22 +90,71 @@ export default async function FeedPage() {
           </Link>
         </div>
       ) : (
-        /*
-         * `items-start` : sans lui, la grille étire les deux cartes d'une ligne à la hauteur
-         * de la plus haute, et un avis court se retrouve avec un grand vide sous son texte.
-         */
-        <div className="flex flex-col gap-s5 lg:grid lg:grid-cols-2 lg:items-start">
-          {feed.map((review) => (
-            <ReviewCard
-              key={review.id}
-              review={review}
-              readerName={reader.name}
-              readerId={reader.userId}
-              readerWeighting={reader.weighting}
-            />
-          ))}
-        </div>
+        <FilOuPaquet
+          nonVus={nonVus}
+          readerName={reader.name}
+          readerId={reader.userId}
+          readerWeighting={reader.weighting}
+        >
+          {/*
+           * `items-start` : sans lui, la grille étire les deux cartes d'une ligne à la hauteur
+           * de la plus haute, et un avis court se retrouve avec un grand vide sous son texte.
+           */}
+          <div className="flex flex-col gap-s5 lg:grid lg:grid-cols-2 lg:items-start">
+            {feed.map((review) => (
+              <ReviewCard
+                key={review.id}
+                review={review}
+                readerName={reader.name}
+                readerId={reader.userId}
+                readerWeighting={reader.weighting}
+              />
+            ))}
+          </div>
+        </FilOuPaquet>
       )}
     </main>
+  );
+}
+
+/**
+ * Le fil tel quel pour un visiteur ; le paquet devant, pour une personne connectée.
+ *
+ * LE PAQUET EST RENDU MÊME SANS NON-VUS, et c'est lui qui décide de s'afficher ou de rendre
+ * la main au fil. Le contraire — ne le rendre que s'il y a des cartes — a produit un vrai
+ * défaut : la veille des notifications rafraîchit la page toutes les trente secondes, et
+ * n'importe quelle action qui revalide « / » fait pareil ; au premier re-rendu serveur après
+ * la dernière carte, la liste des non-vus est vide, le paquet était démonté, et le bilan
+ * n'apparaissait jamais. Un composant qui reste monté garde son état ; un composant
+ * conditionnel le perd.
+ *
+ * Un composant serveur minuscule plutôt qu'une ternaire dans le JSX de la page : le paquet
+ * a besoin d'un `readerId` non nul que le type du lecteur ne garantit pas.
+ */
+function FilOuPaquet({
+  nonVus,
+  readerName,
+  readerId,
+  readerWeighting,
+  children,
+}: {
+  readonly nonVus: Awaited<ReturnType<typeof getAvisNonVus>>;
+  readonly readerName: string | null;
+  readonly readerId: string | null;
+  readonly readerWeighting: Awaited<ReturnType<typeof getReaderContext>>["weighting"];
+  readonly children: React.ReactNode;
+}) {
+  if (readerId === null) {
+    return <>{children}</>;
+  }
+  return (
+    <Paquet
+      cartes={nonVus}
+      readerName={readerName}
+      readerId={readerId}
+      readerWeighting={readerWeighting}
+    >
+      {children}
+    </Paquet>
   );
 }
