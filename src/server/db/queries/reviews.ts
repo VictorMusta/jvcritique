@@ -1,7 +1,8 @@
-import { and, desc, eq, inArray, or, type SQL } from "drizzle-orm";
+import { and, asc, desc, eq, gt, inArray, ne, notInArray, or, type SQL } from "drizzle-orm";
 
 import type { DomainKey, DomainScores, Weighting } from "~/domain/types";
 import { db } from "../index";
+import { idsVusPar } from "./vus";
 import {
   reviewDomainScores,
   reviewScreenshots,
@@ -248,6 +249,41 @@ export async function getFeed(
     ...new Set(rows.map((r) => r.author.id)),
   ]);
 
+  return rows.map((r) => assemble(r, weightingsByUser));
+}
+
+/**
+ * Les avis que cette personne n'a pas encore vus — le contenu du paquet.
+ *
+ * Quatre filtres, chacun pour une raison :
+ *  - publics seulement : un avis privé n'est visible que de son auteur, qui n'a rien à « voir » ;
+ *  - pas les siens : on ne découvre pas ce qu'on a écrit ;
+ *  - pas déjà vus : c'est la table `review_vu` ;
+ *  - RÉCENTS SEULEMENT — trente jours. Sans cette borne, un nouvel arrivant, ou quelqu'un qui
+ *    revient après deux mois, ferait face à tout l'historique. Trente jours, c'est « ce que tes
+ *    amis ont écrit ce mois-ci » : un rattrapage qui se termine.
+ *
+ * Du plus ancien au plus récent, et vingt au plus : on rattrape dans l'ordre où ça s'est
+ * écrit, et un paquet doit pouvoir se finir en une séance.
+ */
+export async function getAvisNonVus(
+  viewerId: string,
+  { jours = 30, max = 20 }: { jours?: number; max?: number } = {},
+): Promise<ReviewForDisplay[]> {
+  const depuis = new Date(Date.now() - jours * 24 * 60 * 60 * 1000);
+  const vus = await idsVusPar(viewerId);
+  const rows = await db.query.reviews.findMany({
+    where: and(
+      eq(reviews.isPrivate, false),
+      ne(reviews.authorId, viewerId),
+      gt(reviews.createdAt, depuis),
+      vus.length > 0 ? notInArray(reviews.id, vus) : undefined,
+    ),
+    with: reviewWith,
+    orderBy: [asc(reviews.createdAt)],
+    limit: max,
+  });
+  const weightingsByUser = await getWeightingsFor([...new Set(rows.map((r) => r.author.id))]);
   return rows.map((r) => assemble(r, weightingsByUser));
 }
 

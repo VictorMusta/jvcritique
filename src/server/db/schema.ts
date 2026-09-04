@@ -768,3 +768,49 @@ export const profileShowcaseRelations = relations(profileShowcase, ({ one }) => 
   user: one(users, { fields: [profileShowcase.userId], references: [users.id] }),
   game: one(games, { fields: [profileShowcase.gameId], references: [games.id] }),
 }));
+
+// =================================================================================
+// Vus — le paquet
+// =================================================================================
+
+/**
+ * LA MARQUE « VU » : une ligne par personne et par avis.
+ *
+ * C'est la seule primitive qui manquait au paquet — le Fil qui s'ouvre sur les avis non
+ * encore vus, un par un. Les quatre gestes du paquet (pas pour moi, passer, à souhaiter,
+ * j'aime) posent tous cette marque ; trois d'entre eux s'appuient en plus sur des tables qui
+ * existaient déjà (réactions, todolist). Ouvrir un avis en entier la pose aussi.
+ *
+ * Pas de colonne « geste » : ce qu'on a fait de l'avis vit là où c'est déjà enregistré. Cette
+ * table ne dit qu'une chose, et ne peut donc pas se contredire avec une autre.
+ *
+ * Pas de rétro-remplissage à la migration : « non vu » est borné par la requête à une
+ * fenêtre récente (voir `getAvisNonVus`), donc les anciens avis ne deviennent pas un paquet
+ * de cinquante cartes le jour de la mise en ligne.
+ */
+export const reviewVus = createTable(
+  "review_vu",
+  (d) => ({
+    userId: d
+      .varchar({ length: 255 })
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    reviewId: d
+      .uuid()
+      .notNull()
+      .references(() => reviews.id, { onDelete: "cascade" }),
+    createdAt: d
+      .timestamp({ mode: "date", withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  }),
+  (t) => [
+    // La clé porte l'unicité : deux chemins peuvent poser la même marque, un seul l'écrit.
+    primaryKey({ columns: [t.userId, t.reviewId] }),
+  ],
+);
+
+export const reviewVusRelations = relations(reviewVus, ({ one }) => ({
+  user: one(users, { fields: [reviewVus.userId], references: [users.id] }),
+  review: one(reviews, { fields: [reviewVus.reviewId], references: [reviews.id] }),
+}));
