@@ -812,3 +812,74 @@ input[type="range"].domain-slider[data-empty="true"]::-moz-range-thumb {
     max-width: 72rem;
   }
 }
+
+/*
+ * LE PAQUET — LA POSE DU TAMPON.
+ *
+ * Au clic sur un des quatre boutons, le tampon apparaissait et la carte partait dans le même
+ * souffle : personne n'avait le temps de lire ce qui venait d'être décidé. Il s'abat donc
+ * comme un vrai tampon — il arrive grand, s'écrase, revient à sa taille — la carte encaisse
+ * le coup au moment où il est le plus gros, puis elle s'en va un quart de seconde plus tard.
+ *
+ * Le geste au doigt, lui, garde le départ immédiat : le tampon y est déjà visible pendant
+ * tout le glissement, donc il n'y a rien à faire comprendre après coup.
+ *
+ * Les durées vivent AUSSI dans paquet.tsx (DUREE_POSE_MS, DELAI_LECTURE_MS), qui enchaîne le
+ * départ. Les deux doivent rester d'accord : c'est écrit des deux côtés.
+ */
+@keyframes paquet-tampon-pose {
+  /* Il part petit et presque transparent : la main qui l'abat n'est pas encore arrivée. */
+  0% {
+    opacity: 0;
+    transform: var(--tampon-rotation) scale(0.4);
+  }
+  30% {
+    opacity: 1;
+  }
+  /* 45 % : L'IMPACT. Le tampon est au plus gros — c'est ici que la carte tremble. */
+  45% {
+    opacity: 1;
+    transform: var(--tampon-rotation) scale(1.45);
+  }
+  /* Puis il rétrécit : il s'écrase sous la pression, et reprend sa taille d'encre sèche. */
+  72% {
+    transform: var(--tampon-rotation) scale(0.94);
+  }
+  100% {
+    opacity: 1;
+    transform: var(--tampon-rotation) scale(1);
+  }
+}
+
+/*
+ * La secousse de la carte : brève, et surtout ASYMÉTRIQUE — quatre allers-retours qui
+ * s'amortissent, jamais un balancement régulier. Un tampon qu'on abat frappe une fois.
+ */
+@keyframes paquet-carte-secousse {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-7px) rotate(-0.5deg); }
+  40% { transform: translateX(5px) rotate(0.35deg); }
+  60% { transform: translateX(-3px) rotate(-0.2deg); }
+  80% { transform: translateX(1.5px); }
+}
+
+.paquet-tampon-pose {
+  /* `ease-out` et non un ressort : l'élan doit être dans les images-clés, pas dans la
+     courbe — sinon le pic d'échelle ne tombe plus au pourcentage annoncé, et la secousse
+     de la carte se décale par rapport au moment où le tampon est le plus gros. */
+  animation: paquet-tampon-pose 380ms ease-out both;
+}
+
+.paquet-carte-secousse {
+  /* Le retard place la secousse sur l'impact du tampon : 45 % de 380 ms. */
+  animation: paquet-carte-secousse 260ms 170ms ease-out both;
+}
+
+/* Ni tampon lancé ni carte secouée pour qui demande moins de mouvement : le résultat
+   s'affiche, et la carte suivante arrive. */
+@media (prefers-reduced-motion: reduce) {
+  .paquet-tampon-pose,
+  .paquet-carte-secousse {
+    animation: none;
+  }
+}
